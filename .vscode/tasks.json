@@ -1,0 +1,266 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // ARM Platform
+    {
+      "label": "(ARM) [DEBUG] Configure",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S", ".",
+        "-B", "build/arm/debug",
+        "-DBUILD_FOR_ARM=ON",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DFREERTOS_KERNEL_PATH=${workspaceFolder}/lib/FreeRTOS-Kernel",
+        "-DPICO_BOARD=pico2_w",         // pico ; pico_w ; pico2 ; pico2_w
+        "-DPICO_PLATFORM=rp2350-arm-s"
+      ],
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "(ARM) [DEBUG] Build",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build", "build/arm/debug"
+      ],
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "(ARM) [DEBUG] Configure + Build",
+      "dependsOn": [
+        "(ARM) [DEBUG] Configure",
+        "(ARM) [DEBUG] Build"
+      ],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "(ARM) [DEBUG] Clean Build Directory",
+      "type": "shell",
+      "command": "rm",
+      "args": [
+        "-rf",
+        "${workspaceFolder}/build/arm/debug"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "(ARM) [Release] Configure",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S", ".",
+        "-B", "build/arm/release",
+        "-DBUILD_FOR_ARM=ON",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "(ARM) [Release] Build",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build", "build/arm/release"
+      ],
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "(ARM) [Release] Configure + Build",
+      "dependsOn": [
+        "(ARM) [Release] Configure",
+        "(ARM) [Release] Build"
+      ],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "(ARM) [Release] Clean Build Directory",
+      "type": "shell",
+      "command": "rm",
+      "args": [
+        "-rf",
+        "${workspaceFolder}/build/arm/release"
+      ],
+      "problemMatcher": []
+    },
+
+    // RISC-V Platform
+    {
+      "label": "(RISC-V) [DEBUG] Configure",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S", ".",
+        "-B", "build/riscv/debug",
+        "-DBUILD_FOR_RISCV=ON",
+        "-DCMAKE_BUILD_TYPE=Debug",
+        "-DFREERTOS_KERNEL_PATH=${workspaceFolder}/lib/FreeRTOS-Kernel",
+        "-DPICO_BOARD=pico2_w",
+        "-DPICO_PLATFORM=rp2350-riscv"
+      ],
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "(RISC-V) [DEBUG] Build",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build", "build/riscv/debug"
+      ],
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "(RISC-V) [DEBUG] Configure + Build",
+      "dependsOn": [
+        "(RISC-V) [DEBUG] Configure",
+        "(RISC-V) [DEBUG] Build"
+      ],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "(RISC-V) [DEBUG] Clean Build Directory",
+      "type": "shell",
+      "command": "rm",
+      "args": [
+        "-rf",
+        "${workspaceFolder}/build/riscv/debug"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "(RISC-V) [Release] Configure",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "-S", ".",
+        "-B", "build/riscv/release",
+        "-DBUILD_FOR_RISCV=ON",
+        "-DCMAKE_BUILD_TYPE=Release"
+      ],
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "(RISC-V) [Release] Build",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build", "build/riscv/release"
+      ],
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "(RISC-V) [Release] Configure + Build",
+      "dependsOn": [
+        "(RISC-V) [Release] Configure",
+        "(RISC-V) [Release] Build"
+      ],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "(RISC-V) [DEBUG] Flash RP2350 via OpenOCD",
+      "type": "shell",
+      "command": "openocd",
+      "args": [
+        "-s", "tcl",
+        "-f", "interface/cmsis-dap.cfg",
+        "-f", "target/rp2350-riscv.cfg",
+        "-c", "adapter speed 3000",
+        "-c", "program build/riscv/debug/src/hkRTOS.elf verify reset exit"
+      ],
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "(RISC-V) [Release] Clean Build Directory",
+      "type": "shell",
+      "command": "rm",
+      "args": [
+        "-rf",
+        "${workspaceFolder}/build/arm/release"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "(RISC-V) [DEBUG] GDB Server for RP2350 via OpenOCD",
+      "type": "shell",
+      "command": "openocd",
+      "args": [
+        "-f", "interface/cmsis-dap.cfg",
+        "-f", "target/rp2350-riscv.cfg",
+        "-c", "adapter speed 3000"
+      ],
+      "isBackground": true,
+      "group": "none",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "(ARM) [DEBUG] Flash RP2350 via OpenOCD",
+      "type": "shell",
+      "command": "openocd",
+      "args": [
+        "-s", "tcl",
+        "-f", "interface/cmsis-dap.cfg",
+        "-f", "target/rp2350.cfg",
+        "-c", "adapter speed 3000",
+        "-c", "program build/arm/debug/src/hkRTOS.elf verify reset exit"
+      ],
+      "problemMatcher": [],
+      "group": "none",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "(ARM) [DEBUG] GDB Server for RP2350 via OpenOCD",
+      "type": "shell",
+      "command": "openocd",
+      "args": [
+        "-f", "interface/cmsis-dap.cfg",
+        "-f", "target/rp2350.cfg",
+        "-c", "adapter speed 3000"
+      ],
+      "isBackground": true,
+      "group": "none",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      }
+    }
+  ]
+}

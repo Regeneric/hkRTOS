@@ -1,0 +1,33 @@
+{
+    "C_Cpp.default.compileCommands": [
+        "${workspaceFolder}/.vscode/compile_commands.json"
+    ],
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/include"
+    ],
+    "files.associations": {
+        "freertos.h": "c",
+        "mpu_syscall_numbers.h": "c",
+        "rp2040_config.h": "c",
+        "defines.h": "c",
+        "stdint.h": "c",
+        "i2c.h": "c",
+        "multicore.h": "c",
+        "stdio.h": "c",
+        "task.h": "c",
+        "semphr.h": "c",
+        "dht11.h": "c",
+        "gpio.h": "c",
+        "array": "c",
+        "string": "c",
+        "string_view": "c",
+        "span": "c",
+        "stdlib.h": "c",
+        "sensors.h": "c",
+        "cyw43_arch.h": "c",
+        "eeprom.h": "c",
+        "netif.h": "c",
+        "clocks.h": "c",
+        "segger_sysview.h": "c"
+    }
+}

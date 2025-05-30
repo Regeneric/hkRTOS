@@ -1,0 +1,65 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "(RISC-V) Hazard3",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/riscv/debug/src/hkRTOS.elf",
+      "miDebuggerPath": "riscv32-unknown-elf-gdb",
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "setupCommands": [
+        {
+          "description": "Use extended-remote so we can reconnect cleanly",
+          "text": "target extended-remote localhost:3333",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Reset & halt target before loading",
+          "text": "monitor reset halt",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Enable pretty-printing for GDB",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "logging": {
+        "engineLogging": true
+      }
+    },
+    {
+      "name": "(ARM) RP2350",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/arm/debug/src/hkRTOS.elf",
+      "miDebuggerPath": "arm-none-eabi-gdb",
+      "cwd": "${workspaceFolder}",
+      "stopAtEntry": false,
+      "externalConsole": false,
+      "setupCommands": [
+        {
+          "description": "Use extended-remote so we can reconnect cleanly",
+          "text": "target extended-remote localhost:3333",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Reset & halt target before loading",
+          "text": "monitor reset halt",
+          "ignoreFailures": false
+        },
+        {
+          "description": "Enable pretty-printing for GDB",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ],
+      "logging": {
+        "engineLogging": true
+      }
+    }
+  ]
+}

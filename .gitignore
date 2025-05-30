@@ -1,0 +1,4 @@
+build/
+debug/hkRTOS.jdebug
+debug/hkRTOS.jdebug.user
+pico_sdk_import.cmake
