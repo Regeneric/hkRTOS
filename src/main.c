@@ -6,6 +6,7 @@
 #include <pico/stdio.h>
 #include <pico/multicore.h>
 #include <pico/cyw43_arch.h>
+#include <hardware/pio.h>
 
 // FreeRTOS
 #include <FreeRTOS.h>
@@ -27,46 +28,56 @@
 #include <sensors/sensors.h>
 #include <sensors/dht11.h>
 
-
 void main(void) {
-    stdio_init_all();
+    u8 dataBytes[5];
+    DHT_Config_t hkDHT11 = {
+        .gpio   = hkDHT11_PIN,
+        .data   = dataBytes,
+        .length = sizeof(dataBytes),
+        .queue  = NULL,
+        .pio    = hkPIO,
+        .sm     = hkPIO_SM
+    }; DHT11_Init(&hkDHT11);
 
-    I2C_Config_t hkI2C0 = {
-        .i2c   = hkI2C,
-        .sda   = hkI2C_SDA,
-        .scl   = hkI2C_SCL,
-        .speed = hkI2C_SPEED,
-    }; I2C_Init(&hkI2C0);
 
-    WIFI_Config_t hkWIFI = {
-        .ssid      = hkWIFI_SSID,
-        .password  = hkWIFI_PASS,
-        .authType  = CYW43_AUTH_WPA2_AES_PSK,
-        .country   = CYW43_COUNTRY_POLAND
-    }; WIFI_Init(&hkWIFI);
+    f32 humidity    = 0.0f;
+    f32 temperature = 0.0f;
 
-    vTaskStartScheduler();
+    while(FOREVER) {
+        DHT11_Read(&hkDHT11);
+
+        humidity    = hkDHT11.data[0] + hkDHT11.data[1] * 0.1f;
+        temperature = hkDHT11.data[2] + hkDHT11.data[3] * 0.1f;
+        if(hkDHT11.data[2] & 0x80) temperature = -temperature;
+
+        printf("DHT: Temperature: %.1f*C\n"  , temperature);
+        printf("DHT: Humidity:    %.0f%%\n\n", humidity);
+
+        // sleep_ms(1000);
+    }
 }
 
 
+// void main(void) {
+//     stdio_init_all();
+
+//     u8 dataBytes[5];
+//     DHT_Config_t hkDHT11 = {
+//         .gpio   = hkDHT11_PIN,
+//         .data   = dataBytes,
+//         .length = sizeof(dataBytes),
+//         .queue  = NULL
+//     }; DHT11_Init(&hkDHT11);
 
 
+//     BaseType_t resp = xTaskCreate(DHT11_ReadTask, "DHT11 Read", 128, &hkDHT11, 2, NULL);
+//     assert(resp == pdPASS);
+    
+//     // resp = xTaskCreate();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//     vTaskStartScheduler();
+//     while(FOREVER);
+// }
 
 
 
@@ -82,9 +93,12 @@ void main(void) {
  
 //     u8 dataBytes[5];
 //     DHT_Config_t hkDHT11 = {
-//         .gpio  = hkDHT11_PIN,
-//         .data  = dataBytes,
-//         .queue = NULL
+//         .gpio   = hkDHT11_PIN,
+//         .data   = dataBytes,
+//         .length = sizeof(dataBytes),
+//         .queue  = NULL,
+//         .pio    = hkPIO,
+//         .pioSM  = hkPIO_SM
 //     }; DHT11_Init(&hkDHT11);
 
 //     DataPacket_t eepromWrite = {

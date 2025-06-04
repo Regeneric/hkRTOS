@@ -28,6 +28,7 @@
         "eeprom.h": "c",
         "netif.h": "c",
         "clocks.h": "c",
-        "segger_sysview.h": "c"
+        "segger_sysview.h": "c",
+        "storage.h": "c"
     }
 }

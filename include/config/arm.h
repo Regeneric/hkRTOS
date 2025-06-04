@@ -2,7 +2,7 @@
 
 #ifdef HPLATFORM_ARM
     // Communication
-    #define hkI2C_USE_SINGLE_I2C        TRUE                            // Use single or both uC I2Cs
+    #define hkI2C_USE_SINGLE_I2C        true                            // Use single or both uC I2Cs
     #define hkI2C_BUS_COUNT            (hkI2C_USE_SINGLE_I2C ? 1 : 2)   // Active I2C buses count
     #if hkI2C_USE_SINGLE_I2C
         #define hkI2C                   i2c0                            // i2c0 or i2c1 ; Default: i2c0
@@ -23,14 +23,30 @@
         #define hkI2C_SPEED_KHZ_TWO     400U                            // 100 ; 400 ; 1000 ; 1700 ; 3400 ; 5000  -  Above 400 KHz use at own risk
         #define hkI2C_SPEED_TWO        (hkI2C_SPEED_KHZ_TWO * 1000U)    // Conversion from KHz to Hz   
     #endif
-    
+    #define hkSEGGER_SYSVIEW            true                            // Use SEGGER SysView for debugging
+    #if hkSEGGER_SYSVIEW
+        #define HPRINT(val)             SEGGER_SYSVIEW_PrintfHost(val)  // Shorthand macro
+    #else
+        #define HPRINT(val)
+    #endif
+
     // Sensors
     #define hkDHT11_PIN                 15                              // Data pin of the DHT11 sensor
+    #define hkDHT11_USE_PIO             true                            // Decide if we want to use PIO or CPU
+    #if hkDHT11_USE_PIO
+        #define hkPIO                   pio0                            // Which PIO
+        #define hkPIO_SM                0                               // Which SM on that PIO
+        #define hkDHT11_LED_PIN         14                              // We push HIGH when data is a logical 1
+    #else
+        #define hkPIO
+        #define hkPIO_SM
+        #define hkDHT11_LED_PIN
+    #endif
 
     // Storage
-    #define hkEEPROM_24LC01B            TRUE                            // 1Kb   (128B) I2C EEPROM
-    // #define hkEEPROM_CAT24C512       TRUE                            // 512Kb (64KB) I2C EEPROM
-    // #define hkFRAM_MB85RC256V        TRUE                            // 256Kb (32KB) I2C FRAM
+    #define hkEEPROM_24LC01B            true                            // 1Kb   (128B) I2C EEPROM
+    // #define hkEEPROM_CAT24C512       true                            // 512Kb (64KB) I2C EEPROM
+    // #define hkFRAM_MB85RC256V        true                            // 256Kb (32KB) I2C FRAM
 
     // Communication
     #ifndef WIFI_SSID
@@ -45,7 +61,7 @@
     #endif
 
     // Display
-    #define hkLCD_PCD8544               TRUE                            // Nokia 5110 LCD Display
-    // #define hkOLED_SSD1306           TRUE                            // 1.5" OLED   
+    #define hkLCD_PCD8544               true                            // Nokia 5110 LCD Display
+    // #define hkOLED_SSD1306           true                            // 1.5" OLED   
 
 #endif

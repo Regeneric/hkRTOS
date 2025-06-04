@@ -3,10 +3,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define TRUE             1
-#define FALSE            0
-#define FOREVER          TRUE
-#define ALWAYS           TRUE
+#ifndef true
+    #define true         1
+#endif
+#ifndef false
+    #define false        0
+#endif
+#define FOREVER          true
+#define ALWAYS           true
 
 #define ARRAY_LEN(arr)  (sizeof(arr) / sizeof((arr)[0]))
 

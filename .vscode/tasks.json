@@ -50,6 +50,63 @@
       "problemMatcher": []
     },
     {
+      "label": "(ARM) [DEBUG] Static Analysis with Cppcheck",
+      "type": "shell",
+      "command": "cppcheck",
+      "args": [
+        "--enable=all",
+        "--inconclusive",
+        "--std=c11",
+        "--force",
+        "--language=c",
+        "--quiet",
+        "--suppress=missingIncludeSystem",
+        // "--suppress=missingInclude",
+        "--platform=unix32",
+
+        // DEFINES matching CMake -D flags
+        "-DHPLATFORM_ARM",
+        "-D__arm_gcc__",
+        "-DPICO_RP2350",
+        "-DPICO_BOARD=pico2_w",
+        "-DPICO_PLATFORM=rp2350-arm-s",
+
+        // Include paths
+        "-I${workspaceFolder}/include",
+        "-I${workspaceFolder}/include/config",
+        "-I${workspaceFolder}/lib/SEGGER",
+        "-I${workspaceFolder}/lib/SEGGER/Config",
+        "-I${workspaceFolder}/lib/SEGGER/FreeRTOSV11",
+        "-I${workspaceFolder}/lib/pico-sdk/src/common",
+        "-I${workspaceFolder}/lib/pico-sdk/src/rp2_common",
+
+        // Source directory
+        "src"
+      ],
+      "problemMatcher": {
+        "owner": "cppcheck",
+        "pattern": [
+          {
+            "regexp": "^\\[(.*):(\\d+)\\]: \\((error|warning|style|performance)\\) (.*)$",
+            "file": 1,
+            "line": 2,
+            "severity": 3,
+            "message": 4 
+          }
+        ]
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+      }
+    },
+    {
       "label": "(ARM) [Release] Configure",
       "type": "shell",
       "command": "cmake",

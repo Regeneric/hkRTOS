@@ -1,0 +1,157 @@
+; ------------------------------------------------------------------------
+; dht11.pio  — PIO state machine to read DHT11/DHT22 sensor
+; ------------------------------------------------------------------------
+
+.program dht11_init
+.side_set 1 opt
+    set pindirs, 1      side 1  ;   Set pin as OUTPUT
+    pull block          side 1  ;   Pull timeout value from FIFO to osr; DATA HIGH
+    mov x, osr                  ;   Copy timeout value from osr to x
+
+data_low:
+    jmp x--, data_low   side 0  ;   Loop for 20ms; DATA LOW
+    pull block                  ;   Pull timeout value from FIFO to osr
+    mov x, osr                  ;   Copy timeout value from osr to x
+
+data_high:
+    jmp x--, data_high  side 1  ;   Loop for 30us; DATA HIGH
+
+handshake:
+    set pindirs, 0              ;   Set pin as INPUT
+    wait 0 pin 0                ;   Wait for DATA LOW  (~80us)
+    wait 1 pin 0                ;   Wait for DATA HIGH (~80us)
+
+send_irq:
+    irq clear 0                 ;   Clear stale IRQs on IRQ0
+    irq set 0                   ;   Set IRQ0 to start SM1         
+
+.wrap_target
+    nop
+.wrap
+
+% c-sdk {
+static inline void dht11_init_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config cfg = dht11_init_program_get_default_config(offset);
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));
+    sm_config_set_in_pins(&cfg, pin);
+    sm_config_set_sideset_pins(&cfg, pin);
+    sm_config_set_set_pins(&cfg, pin, 1);
+    sm_config_set_out_pins(&cfg, pin, 1);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+    
+    pio_sm_init(pio, sm, offset, &cfg);
+}
+%}
+
+
+.program dht11_read
+    irq wait 0                  ;   Wait for IRQ from SM0
+    set x, 5                    ;   Read 5 bytes
+
+byte_loop:
+    set y, 8                    ;   Read 8 bits
+
+bit_loop:
+    wait 0 pin, 0               ;   Wait for sensor START signal (50us low)
+    wait 1 pin, 0               ;   Wait for sensor BIT signal (25us or 75us high)
+    nop [31]                    ;   Wait for 32us (threshold between logical 0 and 1 is ~30us)
+
+    in  pins, 1                 ;   If line is still HIGH, shift 1 into isr, else shift 0
+    jmp y--, bit_loop           ;   Read another bit until we've got all 8
+    jmp x--, byte_loop          ;   Read anotehr byte until we've got all 5
+
+.wrap_target
+    nop
+.wrap
+
+% c-sdk {
+static inline void dht11_read_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config cfg = dht11_read_program_get_default_config(offset);
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));
+    sm_config_set_in_pins(&cfg, pin);
+    sm_config_set_sideset_pins(&cfg, pin);
+    sm_config_set_set_pins(&cfg, pin, 1);
+    sm_config_set_out_pins(&cfg, pin, 1);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+
+    sm_config_set_fifo_join(&cfg, PIO_FIFO_JOIN_RX);
+    sm_config_set_in_shift(&cfg, true, true, 8);
+
+    pio_sm_init(pio, sm, offset, &cfg);
+    pio_sm_set_enabled(pio , sm, true);
+}
+%}
+
+
+
+; .program dht11_init
+; .side_set 1
+;     set  pindirs, 1     side 0  ;   Pin as output; we use the same GPIO pin for DATA and side
+;     pull block          side 0  ;   Pull 20000 (20ms) from FIFO to osr
+;     mov  x, osr         side 0  ;   Save that value into x register
+
+; data_low:
+;     jmp  x--, data_low  side 0  ;   Loop for 20ms
+;     pull block          side 0  ;   Pull 30 (30us) from FIFO to osr
+;     mov  x, osr         side 1  ;   Move osr to x, drive DATA high
+
+; data_high:
+;     jmp x--, data_high  side 1  ;   Loop for 30us
+
+; signal_wait:
+;     set  pindirs, 0     side 1  ;   Pin as input, side is ignored (but we left it 1 to signalize internal hi-z)
+;     wait 0 pin, 0       side 0  ;   Wait until DHT pulls line LOW (~80us)
+;     wait 1 pin, 0       side 0  ;   Wait until DHT releases to HIGH (~80us)
+
+; send_irq:
+;     irq clear 0         side 0  ;   Clear any stale IRQ0
+;     irq set 0           side 0  ;   Set IRQ0 to wake SM1
+
+
+; .program dht11_read
+;     irq wait 0                  ;   Wait for IRQ from SM0
+;     set x, 5                    ;   Read 5 bytes
+
+; byte_loop:
+;     set y, 8                    ;   Read 8 bits
+
+; bit_loop:
+;     wait 0 pin, 0               ;   Wait for sensor START signal (50us low)
+;     wait 1 pin, 0               ;   Wait for sensor BIT signal (25us or 75us high)
+;     nop [31]                    ;   Wait for 32us (threshold between logical 0 and 1 is ~30us)
+
+;     in  pins, 1                 ;   If line is still HIGH, shift 1 into isr, else shift 0
+;     jmp y--, bit_loop           ;   Read another bit until we've got all 8
+;     jmp x--, byte_loop          ;   Read anotehr byte until we've got all 5
+
+
+
+;; One‐bit side‐set so we can drive an LED (0=off, 1=on) exactly when we "push" a data bit out of the FIFO.
+; .program dht11
+; .side_set 1
+; .wrap_target
+;     set x, 4            side 0  ;   Outer loop: read 5 bytes (40 bits) of data
+; byte_loop:
+;     set y, 7            side 0  ;   Inner loop: read 8 bits of data
+
+; bit_loop:
+;     wait 0 pin 0        side 0  ;   Wait for sensor START signal (50us low)
+;     wait 1 pin 0        side 0  ;   Wait for sensor BIT signal (25us or 75us high)
+;     nop [14]            side 0  ;   Stay here for 15us
+;     nop [14]            side 0  ;   Stay here for 10us (threshold between logical 0 and 1 is ~30us)
+;     jmp pin, push_one   side 0  ;   If pin is still high after 30us, then it's logical 1
+;     in null, 1          side 0  ;   Else pin is low, shift 0 into isr
+;     jmp continue        side 0  ;   Continue iteration  
+
+; push_one:
+;     in pins, 1          side 1  ;   Shift logical 1 into isr
+
+; continue:
+;     jmp y--, bit_loop   side 0  ;   Read next bit
+;     push block          side 0  ;   If y underflows, we collected 8 bits
+;     jmp x--, byte_loop  side 0  ;   Read next byte
+; .wrap
