@@ -8,117 +8,66 @@
 #include "hardware/pio.h"
 #endif
 
-// ---------- //
-// dht11_init //
-// ---------- //
+// ----- //
+// dht11 //
+// ----- //
 
-#define dht11_init_wrap_target 12
-#define dht11_init_wrap 12
-#define dht11_init_pio_version 1
+#define dht11_wrap_target 0
+#define dht11_wrap 17
+#define dht11_pio_version 1
 
-static const uint16_t dht11_init_program_instructions[] = {
-    0xf881, //  0: set    pindirs, 1      side 1
-    0x98a0, //  1: pull   block           side 1
-    0xa027, //  2: mov    x, osr
-    0x1043, //  3: jmp    x--, 3          side 0
-    0x80a0, //  4: pull   block
-    0xa027, //  5: mov    x, osr
-    0x1846, //  6: jmp    x--, 6          side 1
-    0xe080, //  7: set    pindirs, 0
-    0x2020, //  8: wait   0 pin, 0
-    0x20a0, //  9: wait   1 pin, 0
-    0xc040, // 10: irq    clear 0
-    0xc000, // 11: irq    nowait 0
+static const uint16_t dht11_program_instructions[] = {
             //     .wrap_target
-    0xa042, // 12: nop
+    0xf081, //  0: set    pindirs, 1      side 1
+    0x90a0, //  1: pull   block           side 1
+    0xb027, //  2: mov    x, osr          side 1
+    0x0043, //  3: jmp    x--, 3          side 0
+    0x80a0, //  4: pull   block           side 0
+    0xa027, //  5: mov    x, osr          side 0
+    0x1046, //  6: jmp    x--, 6          side 1
+    0xe080, //  7: set    pindirs, 0      side 0
+    0x2020, //  8: wait   0 pin, 0        side 0
+    0x20a0, //  9: wait   1 pin, 0        side 0
+    0xe024, // 10: set    x, 4            side 0
+    0xe047, // 11: set    y, 7            side 0
+    0x2e20, // 12: wait   0 pin, 0        side 0 [14]
+    0x2ea0, // 13: wait   1 pin, 0        side 0 [14]
+    0xae42, // 14: nop                    side 0 [14]
+    0x4001, // 15: in     pins, 1         side 0
+    0x008c, // 16: jmp    y--, 12         side 0
+    0x004b, // 17: jmp    x--, 11         side 0
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
-static const struct pio_program dht11_init_program = {
-    .instructions = dht11_init_program_instructions,
-    .length = 13,
+static const struct pio_program dht11_program = {
+    .instructions = dht11_program_instructions,
+    .length = 18,
     .origin = -1,
-    .pio_version = dht11_init_pio_version,
+    .pio_version = dht11_pio_version,
 #if PICO_PIO_VERSION > 0
     .used_gpio_ranges = 0x0
 #endif
 };
 
-static inline pio_sm_config dht11_init_program_get_default_config(uint offset) {
+static inline pio_sm_config dht11_program_get_default_config(uint offset) {
     pio_sm_config c = pio_get_default_sm_config();
-    sm_config_set_wrap(&c, offset + dht11_init_wrap_target, offset + dht11_init_wrap);
-    sm_config_set_sideset(&c, 2, true, false);
+    sm_config_set_wrap(&c, offset + dht11_wrap_target, offset + dht11_wrap);
+    sm_config_set_sideset(&c, 1, false, false);
     return c;
 }
 
-static inline void dht11_init_program_init(PIO pio, uint sm, uint offset, uint pin) {
-    pio_sm_config cfg = dht11_init_program_get_default_config(offset);
+static inline void dht11_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config cfg = dht11_program_get_default_config(offset);
     sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));
     sm_config_set_in_pins(&cfg, pin);
     sm_config_set_sideset_pins(&cfg, pin);
     sm_config_set_set_pins(&cfg, pin, 1);
     sm_config_set_out_pins(&cfg, pin, 1);
+    sm_config_set_in_shift(&cfg, false, true, 8);
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
     pio_gpio_init(pio, pin);
     pio_sm_init(pio, sm, offset, &cfg);
-}
-
-#endif
-
-// ---------- //
-// dht11_read //
-// ---------- //
-
-#define dht11_read_wrap_target 9
-#define dht11_read_wrap 9
-#define dht11_read_pio_version 1
-
-static const uint16_t dht11_read_program_instructions[] = {
-    0xc020, //  0: irq    wait 0
-    0xe025, //  1: set    x, 5
-    0xe048, //  2: set    y, 8
-    0x2020, //  3: wait   0 pin, 0
-    0x20a0, //  4: wait   1 pin, 0
-    0xbf42, //  5: nop                           [31]
-    0x4001, //  6: in     pins, 1
-    0x0083, //  7: jmp    y--, 3
-    0x0042, //  8: jmp    x--, 2
-            //     .wrap_target
-    0xa042, //  9: nop
-            //     .wrap
-};
-
-#if !PICO_NO_HARDWARE
-static const struct pio_program dht11_read_program = {
-    .instructions = dht11_read_program_instructions,
-    .length = 10,
-    .origin = -1,
-    .pio_version = dht11_read_pio_version,
-#if PICO_PIO_VERSION > 0
-    .used_gpio_ranges = 0x0
-#endif
-};
-
-static inline pio_sm_config dht11_read_program_get_default_config(uint offset) {
-    pio_sm_config c = pio_get_default_sm_config();
-    sm_config_set_wrap(&c, offset + dht11_read_wrap_target, offset + dht11_read_wrap);
-    return c;
-}
-
-static inline void dht11_read_program_init(PIO pio, uint sm, uint offset, uint pin) {
-    pio_sm_config cfg = dht11_read_program_get_default_config(offset);
-    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));
-    sm_config_set_in_pins(&cfg, pin);
-    sm_config_set_sideset_pins(&cfg, pin);
-    sm_config_set_set_pins(&cfg, pin, 1);
-    sm_config_set_out_pins(&cfg, pin, 1);
-    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
-    pio_gpio_init(pio, pin);
-    sm_config_set_fifo_join(&cfg, PIO_FIFO_JOIN_TX);
-    sm_config_set_in_shift(&cfg, true, true, 8);
-    pio_sm_init(pio, sm, offset, &cfg);
-    pio_sm_set_enabled(pio , sm, true);
 }
 
 #endif

@@ -41,9 +41,10 @@ endif()
 
 
 # --- RTOS KERNEL & SDK PATHS -------------------------------------------------
-SET(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/FreeRTOS-Kernel)
-SET(PICO_SDK ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-sdk)
-SET(PICO_EXTRAS ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-extras)
+set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/FreeRTOS-Kernel)
+set(PICO_SDK ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-sdk)
+set(PICO_EXTRAS ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-extras)
+set(PICO_DEOPTIMIZED_DEBUG 0)
 
 include(pico_sdk_import.cmake)
 

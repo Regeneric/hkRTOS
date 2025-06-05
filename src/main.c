@@ -29,6 +29,8 @@
 #include <sensors/dht11.h>
 
 void main(void) {
+    stdio_init_all();
+
     u8 dataBytes[5];
     DHT_Config_t hkDHT11 = {
         .gpio   = hkDHT11_PIN,
@@ -53,7 +55,7 @@ void main(void) {
         printf("DHT: Temperature: %.1f*C\n"  , temperature);
         printf("DHT: Humidity:    %.0f%%\n\n", humidity);
 
-        // sleep_ms(1000);
+        sleep_ms(1000);
     }
 }
 
@@ -98,7 +100,7 @@ void main(void) {
 //         .length = sizeof(dataBytes),
 //         .queue  = NULL,
 //         .pio    = hkPIO,
-//         .pioSM  = hkPIO_SM
+//         .sm  = hkPIO_SM
 //     }; DHT11_Init(&hkDHT11);
 
 //     DataPacket_t eepromWrite = {

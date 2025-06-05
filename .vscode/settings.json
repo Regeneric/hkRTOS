@@ -29,6 +29,7 @@
         "netif.h": "c",
         "clocks.h": "c",
         "segger_sysview.h": "c",
-        "storage.h": "c"
+        "storage.h": "c",
+        "cstddef": "c"
     }
 }

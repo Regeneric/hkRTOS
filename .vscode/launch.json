@@ -60,6 +60,20 @@
       "logging": {
         "engineLogging": true
       }
+    },
+    {
+      "name": "(ARM) [Cortex DBG] RP2350",
+      "cwd": "${workspaceRoot}",
+      "executable": "${workspaceFolder}/build/arm/debug/src/hkRTOS.elf",
+      "request": "launch",
+      "type": "cortex-debug",
+      "servertype": "external",
+      "gdbPath" : "arm-none-eabi-gdb",
+      "gdbTarget": "127.0.0.1:3333",
+      "device": "RP2350",     
+      "svdFile": "${workspaceFolder}/debug/RP2350.svd",
+      // "runToEntryPoint": "main",
+      "showDevDebugOutput": "parsed"
     }
   ]
 }

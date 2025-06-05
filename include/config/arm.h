@@ -36,11 +36,9 @@
     #if hkDHT11_USE_PIO
         #define hkPIO                   pio0                            // Which PIO
         #define hkPIO_SM                0                               // Which SM on that PIO
-        #define hkDHT11_LED_PIN         14                              // We push HIGH when data is a logical 1
     #else
         #define hkPIO
         #define hkPIO_SM
-        #define hkDHT11_LED_PIN
     #endif
 
     // Storage
@@ -49,15 +47,21 @@
     // #define hkFRAM_MB85RC256V        true                            // 256Kb (32KB) I2C FRAM
 
     // Communication
-    #ifndef WIFI_SSID
-        #define hkWIFI_SSID             "NP2"                           // WiFi network name
+    #define hkENABLE_WIFI               false
+    #if hkENABLE_WIFI
+        #ifndef WIFI_SSID
+            #define hkWIFI_SSID         "NP2"                           // WiFi network name
+        #else
+            #define hkWIFI_SSID         WIFI_SSID                       // If passed from CMake
+        #endif
+        #ifndef WIFI_PASSWORD 
+            #define hkWIFI_PASS         "0123456789"                    // WiFi password
+        #else
+            #define hkWIFI_PASS         WIFI_PASSWORD                   // If passed from CMake
+        #endif
     #else
-        #define hkWIFI_SSID             WIFI_SSID                       // If passed from CMake
-    #endif
-    #ifndef WIFI_PASSWORD 
-        #define hkWIFI_PASS             "0123456789"                    // WiFi password
-    #else
-        #define hkWIFI_PASS             WIFI_PASSWORD                   // If passed from CMake
+        #define hkWIFI_SSID
+        #define hkWIFI_PASS
     #endif
 
     // Display
