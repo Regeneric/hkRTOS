@@ -10,7 +10,8 @@ typedef enum {
     DHT_READ_BAD_CHECKSUM
 } DHT_Status_t;
 
-#if hkDHT11_USE_PIO
+#if hkDHT_USE_PIO
+    #include <hardware/pio.h>
     typedef struct DHT_Config_t {
         u8     gpio;
         u8*    data;

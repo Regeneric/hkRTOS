@@ -32,6 +32,8 @@
         "storage.h": "c",
         "cstddef": "c",
         "string.h": "c",
-        "irq.h": "c"
+        "irq.h": "c",
+        "dma.h": "c",
+        "sync.h": "c"
     }
 }

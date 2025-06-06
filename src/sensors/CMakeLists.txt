@@ -1,6 +1,8 @@
 add_library(libsensors 
     STATIC
         dht11.c
+        dht11_pio.c
+        dht11_dma.c
         dht11.pio
 )
 
@@ -38,7 +40,6 @@ target_link_libraries(libsensors
         hardware_clocks
         hardware_dma
         hardware_irq
-        hardware_sync
 
         FreeRTOS-Kernel
 )

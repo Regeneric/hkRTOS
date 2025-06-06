@@ -39,7 +39,7 @@ void main(void) {
     stdio_init_all();
 
     static u8 dataBytes[5];
-        hkDHT11.gpio   = hkDHT11_PIN;
+        hkDHT11.gpio   = hkDHT_PIN;
         hkDHT11.data   = dataBytes;
         hkDHT11.length = sizeof(dataBytes);
         hkDHT11.queue  = NULL;
