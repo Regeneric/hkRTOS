@@ -7,8 +7,8 @@
 #include <hardware/irq.h>
 
 #include <sensors/sensors.h>
-#include <sensors/dht11.h>
-#include <sensors/dht11.pio.h>
+#include <sensors/dht11/dht11.h>
+#include <sensors/dht11/dht11.pio.h>
     
 #if hkDHT_USE_SENSOR && (hkDHT_USE_PIO && hkDHT_USE_DMA)
 static u32 sgDHT11_SM_Offset = 0;
@@ -81,7 +81,7 @@ static void DHT11_ProcessData(DHT_Config_t* config) {
 
     u8 checksum = (config->data[0] + config->data[1] + config->data[2] + config->data[3]) & 0xFF; 
     if(checksum != config->data[4]) {
-        printf("Data read failed. Invalid checksum: 0x%x  0x%x\n", checksum, config->data[4]);
+        printf("Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x\n", checksum, config->data[4]);
         config->status = DHT_READ_BAD_CHECKSUM;
         return;
     } config->status = DHT_READ_SUCCESS;

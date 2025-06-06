@@ -1,0 +1,30 @@
+; -----------------------------------------------------------------------------
+; onewire_reset.pio  — 1-Wire protocol implementation - 1 MHz clock
+; -----------------------------------------------------------------------------
+
+; 1-Wire Reset and Presence-Detect Sequence
+;
+; Phase             Action                          Purpose & Timing
+; ----------------- ------------------------------- ----------------------------------------------------
+; Reset Pulse       Master pulls line LOW           Signals to all devices to wake up and listen.
+; Hold Duration     Master holds LOW for a LONG     (~480us or more) This specific duration is the reset signal.
+;                   time.
+;
+; Handshake         Master releases line (HIGH)     Allows slave devices to respond.
+; Slave Wait        (Slave waits 15-60us)           (Internal slave timing before it responds).
+; Detect Start      Master waits for line LOW       Master looks for the start of the slave's presence pulse.
+; Detect End        Master waits for line HIGH      Master confirms the slave has finished its pulse.
+
+.program onewire_reset
+    set pins, 0             ;   Explicit logical '0'
+    set pindirs, 1          ;   DATA as output; DATA LOW
+    pull block              ;   Pull timeout value from the FIFO into osr 
+    mov x, osr              ;   Load timeout value from osr to x
+
+reset_signal:
+    jmp x--, reset_signal   ;   Hold DATA LOW for at least 480us
+
+handshake:
+    set pindirs, 0          ;   DATA as input; DATA HIGH because of pull-up resistor
+    wait 0 pin 0 [31]       ;   Wait for DATA LOW  (60 - 240us)
+    wait 1 pin 0 [31]       ;   Wait for DATA HIGH (15 - 60us)

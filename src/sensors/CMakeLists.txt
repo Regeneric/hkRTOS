@@ -15,4 +15,5 @@ endif()
 target_link_libraries(libsensors
     INTERFACE
         libdht11
+        # libbme280
 )

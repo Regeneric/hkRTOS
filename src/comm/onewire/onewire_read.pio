@@ -1,0 +1,41 @@
+; -----------------------------------------------------------------------------
+; onewire_read.pio  — 1-Wire protocol implementation - 1 MHz clock
+; -----------------------------------------------------------------------------
+
+; 1-Wire Read Time Slot Sequence (for a single bit)
+;
+; Phase             Action                          Purpose & Timing
+; ----------------- ------------------------------- ----------------------------------------------------
+; Initiate Slot     Master pulls line LOW           Signals to the slave, "I am ready to read a bit."
+; Hold Duration     Master holds LOW for a SHORT    (~2-5us) This is just to start the read window.
+;                   time.
+;
+; Slave Response    Master releases line (HIGH)     Gives control of the bus to the slave.
+;                   Slave sends '1' by doing        The pull-up resistor keeps the line HIGH.
+;                   NOTHING.
+;                   Slave sends '0' by pulling      The slave actively drives the line LOW.
+;                   the line LOW.
+;
+; Master Sample     Master waits a few us, then     (~5-10us after start of slot) Master reads the pin
+;                   SAMPLES the pin state.          state to determine the bit the slave is sending.
+;
+; Slot Recovery     Master waits for the remainder    Ensures the total slot duration is met (~60us) before
+;                   of the time slot.               the next bit read can begin.
+
+.program onewire_read
+.wrap_target
+    set y, 7                ;   Byte loop iterator
+
+bit_loop:
+    set pins, 0             ;   Explicit logical '0'
+    set pindirs, 1 [2]      ;   DATA as output; DATA LOW for ~3us
+    set pindirs, 0          ;   DATA as input; DATA HIGH because of pull-up resistor
+
+    nop [5]                 ;   Wait for ~5us and sample the DATA line
+    in pins, 1              ;   Sample DATA line
+    nop [31]                ;   Wait for ~32us
+    nop [15]                ;   Waot for ~12us so the total slot duration is met
+    jmp y--, bit_loop       ;   Read another bit
+
+    push                    ;   Push byte to FIFO
+.wrap

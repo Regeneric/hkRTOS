@@ -1,3 +1,5 @@
+add_subdirectory(onewire)
+
 add_library(libcomm 
     STATIC
         i2c.c
@@ -22,11 +24,15 @@ target_include_directories(libcomm
 )
 
 target_link_libraries(libcomm
+    PRIVATE
+        libonewire
+
     PUBLIC
         pico_stdlib 
         pico_cyw43_arch_lwip_sys_freertos
 
         hardware_gpio
+        hardware_pio
         hardware_i2c 
 
         FreeRTOS-Kernel

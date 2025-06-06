@@ -1,0 +1,44 @@
+; -----------------------------------------------------------------------------
+; onewire_write.pio  — 1-Wire protocol implementation - 1 MHz clock
+; -----------------------------------------------------------------------------
+
+; 1-Wire Write Time Slot Sequence (for a single bit)
+;
+; Phase             Action                          Purpose & Timing
+; ----------------- ------------------------------- ----------------------------------------------------
+; Initiate Slot     Master pulls line LOW           Signals the start of a write time slot to all slaves.
+;
+; Transmit '1'      Master holds LOW for a SHORT    (~5-15us) The slave device samples the line and
+;                   time, then releases (HIGH).     registers a '1' bit.
+;
+; Transmit '0'      Master holds LOW for a LONG     (~60us) The slave device samples the line and
+;                   time, then releases (HIGH).     registers a '0' bit.
+;
+; Slot Recovery     The line stays HIGH after the   Provides the required recovery time before the
+;                   pulse for the remainder of      next time slot can begin.
+;                   the slot.
+
+.program onewire_write
+send_data:
+    set pins, 0             ;   Explicit logical '0'
+    set pindirs, 1          ;   DATA as output; DATA LOW
+    pull block              ;   Pull command from FIFO to osr
+    set y, 7                ;   Byte loop iterator
+
+bit_loop:
+    out x, 1                ;   Shift one bit from osr to x
+    jmp !x, send_zero       ;   We've got a logical '1'; otherwise we've got a logical '0'   
+
+send_one:
+    set pins, 0 [4]         ;   Drive DATA LOW (~5us)
+    set pins, 1             ;   Drive DATA HIGH
+    jmp bit_loop_end        ;   Read another bit
+
+send_zero:
+    set pins, 0 [31]        ;   Drive DATA LOW (~60us)
+    nop [27]                ;   Wait till the write time slot for 0 is met
+    set pins 1              ;   Drive DATA HIGH
+
+bit_loop_end:
+    jmp y--, bit_loop       ;   Read another bit
+    jmp send_data           ;   Read another byte

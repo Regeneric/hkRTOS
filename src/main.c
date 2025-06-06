@@ -26,11 +26,11 @@
 #include <storage/eeprom.h>
 
 #include <sensors/sensors.h>
-#include <sensors/dht11.h>
+#include <sensors/dht11/dht11.h>
 
 static DHT_Config_t hkDHT11;
 
-bool DHT11_Timer_ISR(struct repeating_timer *t) {
+static bool DHT11_Timer_ISR(struct repeating_timer *t) {
     DHT11_Read(&hkDHT11);
     return true;
 }
