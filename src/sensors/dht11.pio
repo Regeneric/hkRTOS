@@ -4,7 +4,6 @@
 
 .program dht11
 .side_set 1
-.wrap_target
     set pindirs, 1      side 1  ;   Set pin as OUTPUT
     pull block          side 1  ;   Pull timeout value from FIFO to osr; DATA HIGH
     mov x, osr          side 1  ;   Copy timeout value from osr to x
@@ -21,7 +20,6 @@ handshake:
     set pindirs, 0      side 0  ;   Set pin as INPUT
     wait 0 pin 0        side 0  ;   Wait for DATA LOW  (~80us)
     wait 1 pin 0        side 0  ;   Wait for DATA HIGH (~80us)
-
     set x, 4            side 0  ;   Read 5 bytes
 
 loop:
@@ -35,12 +33,11 @@ data_read:
     in  pins, 1         side 0  ;   If line is still HIGH, shift 1 into isr, else shift 0
     jmp y--, data_read  side 0  ;   Read another bit until we've got all 8
     jmp x--, loop       side 0  ;   Read anotehr byte until we've got all 5
-.wrap
 
 % c-sdk {
 static inline void dht11_program_init(PIO pio, uint sm, uint offset, uint pin) {
     pio_sm_config cfg = dht11_program_get_default_config(offset);
-    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));  // 1 MHz aka 1 tick == 1us
     sm_config_set_in_pins(&cfg, pin);
     sm_config_set_sideset_pins(&cfg, pin);
     sm_config_set_set_pins(&cfg, pin, 1);

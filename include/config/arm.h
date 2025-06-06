@@ -1,4 +1,5 @@
 #pragma once
+#include <defines.h>
 
 #ifdef HPLATFORM_ARM
     // Communication
@@ -34,6 +35,9 @@
     #define hkDHT11_PIN                 15                              // Data pin of the DHT11 sensor
     #define hkDHT11_USE_PIO             true                            // Decide if we want to use PIO or CPU
     #if hkDHT11_USE_PIO
+        #define hkDHT11_USE_DMA         true                            //  Decide if we want to use DMA for data collection or CPU
+    #endif
+    #if hkDHT11_USE_PIO
         #define hkPIO                   pio0                            // Which PIO
         #define hkPIO_SM                0                               // Which SM on that PIO
     #else
@@ -43,11 +47,16 @@
 
     // Storage
     #define hkEEPROM_24LC01B            true                            // 1Kb   (128B) I2C EEPROM
+    #if hkEEPROM_24LC01B
+        #define hkEEPROM_24AA01         true                            // 1Kb   (128B) I2C EEPROM - compatible with 24LC01B - operating voltage from 1.7V
+        #define hkEEPROM_24FC01         false                           // 1Kb   (128B) I2C EEPROM - compatible with 24LC01B - clock up to 1000 KHz
+    #endif
     // #define hkEEPROM_CAT24C512       true                            // 512Kb (64KB) I2C EEPROM
     // #define hkFRAM_MB85RC256V        true                            // 256Kb (32KB) I2C FRAM
+    #define hkFLASH_W25Q128JV           true                            // 128Mb (16MB) SPI FLASH
 
     // Communication
-    #define hkENABLE_WIFI               false
+    #define hkENABLE_WIFI               true                            // Enable or disable WiFi module
     #if hkENABLE_WIFI
         #ifndef WIFI_SSID
             #define hkWIFI_SSID         "NP2"                           // WiFi network name

@@ -30,6 +30,8 @@
         "clocks.h": "c",
         "segger_sysview.h": "c",
         "storage.h": "c",
-        "cstddef": "c"
+        "cstddef": "c",
+        "string.h": "c",
+        "irq.h": "c"
     }
 }

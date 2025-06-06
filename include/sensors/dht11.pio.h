@@ -59,7 +59,7 @@ static inline pio_sm_config dht11_program_get_default_config(uint offset) {
 
 static inline void dht11_program_init(PIO pio, uint sm, uint offset, uint pin) {
     pio_sm_config cfg = dht11_program_get_default_config(offset);
-    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));  // 1 MHz aka 1 tick == 1us
     sm_config_set_in_pins(&cfg, pin);
     sm_config_set_sideset_pins(&cfg, pin);
     sm_config_set_set_pins(&cfg, pin, 1);

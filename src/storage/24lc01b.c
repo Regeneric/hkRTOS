@@ -1,5 +1,5 @@
 #include <config/arm.h>
-#ifdef hkEEPROM_24LC01B
+#if hkEEPROM_24LC01B
 
 #include <stdio.h>
 #include <string.h>
@@ -18,6 +18,11 @@ b8 EEPROM_Write(const void* config, const void* packet) {
     I2C_Config_t* i2c = (I2C_Config_t*)config;
     const DataPacket_t* data = (DataPacket_t*)packet;
     u8 address = (u8)data->address;
+
+    if(hkEEPROM_24FC01 == false && i2c->speed > 400) {
+        printf("EEPROM: Clock faster than %u KHz is supported only on 24FC01\n", i2c->speed);
+        return false;
+    } 
 
     // Sanity check
     if(data->size == 0 || data->size > EEPROM_PAGE_SIZE) {
@@ -51,6 +56,11 @@ b8 EEPROM_Read(const void* config, void* packet) {
     I2C_Config_t* i2c  = (I2C_Config_t*)config;
     DataPacket_t* data = (DataPacket_t*)packet;
     u8 address = (u8)data->address;
+
+    if(hkEEPROM_24FC01 == false && i2c->speed > 400) {
+        printf("EEPROM: Clock faster than %u KHz is supported only on 24FC01\n", i2c->speed);
+        return false;
+    } 
 
     if(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, &address, 1, true) != 1) {
         printf("EEPROM: Failed to send control signal to: 0x%x\n", EEPROM_ADDR);

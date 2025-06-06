@@ -34,9 +34,11 @@ target_link_libraries(libsensors
         pico_stdlib 
 
         hardware_gpio
-        hardware_i2c
         hardware_pio
         hardware_clocks
+        hardware_dma
+        hardware_irq
+        hardware_sync
 
         FreeRTOS-Kernel
 )

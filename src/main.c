@@ -28,34 +28,47 @@
 #include <sensors/sensors.h>
 #include <sensors/dht11.h>
 
+static DHT_Config_t hkDHT11;
+
+bool DHT11_Timer_ISR(struct repeating_timer *t) {
+    DHT11_Read(&hkDHT11);
+    return true;
+}
+
 void main(void) {
     stdio_init_all();
 
-    u8 dataBytes[5];
-    DHT_Config_t hkDHT11 = {
-        .gpio   = hkDHT11_PIN,
-        .data   = dataBytes,
-        .length = sizeof(dataBytes),
-        .queue  = NULL,
-        .pio    = hkPIO,
-        .sm     = hkPIO_SM
-    }; DHT11_Init(&hkDHT11);
+    static u8 dataBytes[5];
+        hkDHT11.gpio   = hkDHT11_PIN;
+        hkDHT11.data   = dataBytes;
+        hkDHT11.length = sizeof(dataBytes);
+        hkDHT11.queue  = NULL;
+        hkDHT11.status = DHT_INIT;
+        hkDHT11.pio    = hkPIO;
+        hkDHT11.sm     = hkPIO_SM;
+    DHT11_Init(&hkDHT11);
 
+    struct repeating_timer timer;
+    add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &timer);
 
     f32 humidity    = 0.0f;
     f32 temperature = 0.0f;
 
     while(FOREVER) {
-        DHT11_Read(&hkDHT11);
+        if(hkDHT11.status != DHT_READ_IN_PROGRESS) {
+            if(hkDHT11.status == DHT_READ_SUCCESS) {
+                humidity    = hkDHT11.data[0] + hkDHT11.data[1] * 0.1f;
+                temperature = hkDHT11.data[2] + hkDHT11.data[3] * 0.1f;
+                if(hkDHT11.data[2] & 0x80) temperature = -temperature;
 
-        humidity    = hkDHT11.data[0] + hkDHT11.data[1] * 0.1f;
-        temperature = hkDHT11.data[2] + hkDHT11.data[3] * 0.1f;
-        if(hkDHT11.data[2] & 0x80) temperature = -temperature;
-
-        printf("DHT: Temperature: %.1f*C\n"  , temperature);
-        printf("DHT: Humidity:    %.0f%%\n\n", humidity);
-
-        sleep_ms(1000);
+                printf("DHT: Temperature: %.1f*C\n"  , temperature);
+                printf("DHT: Humidity:    %.0f%%\n\n", humidity);
+                sleep_ms(1000);
+            } else {
+                printf("DHT: Data read failed\n");
+                sleep_ms(500);
+            }
+        }
     }
 }
 
@@ -68,9 +81,11 @@ void main(void) {
 //         .gpio   = hkDHT11_PIN,
 //         .data   = dataBytes,
 //         .length = sizeof(dataBytes),
-//         .queue  = NULL
+//         .queue  = NULL,
+//         .status = DHT_INIT,
+//         .pio    = hkPIO,
+//         .sm     = hkPIO_SM
 //     }; DHT11_Init(&hkDHT11);
-
 
 //     BaseType_t resp = xTaskCreate(DHT11_ReadTask, "DHT11 Read", 128, &hkDHT11, 2, NULL);
 //     assert(resp == pdPASS);
@@ -98,9 +113,9 @@ void main(void) {
 //         .gpio   = hkDHT11_PIN,
 //         .data   = dataBytes,
 //         .length = sizeof(dataBytes),
-//         .queue  = NULL,
-//         .pio    = hkPIO,
-//         .sm  = hkPIO_SM
+//         .queue  = NULL
+//         // .pio    = hkPIO,
+//         // .sm  = hkPIO_SM
 //     }; DHT11_Init(&hkDHT11);
 
 //     DataPacket_t eepromWrite = {
@@ -119,12 +134,12 @@ void main(void) {
 //     f32 humidity    = 0.0f;
 //     f32 temperature = 0.0f;
 
-//     WIFI_Config_t hkWIFI = {
-//         .ssid      = hkWIFI_SSID,
-//         .password  = hkWIFI_PASS,
-//         .authType  = CYW43_AUTH_WPA2_AES_PSK,
-//         .country   = CYW43_COUNTRY_POLAND
-//     }; // WIFI_Init(&hkWIFI);
+//     // WIFI_Config_t hkWIFI = {
+//     //     .ssid      = hkWIFI_SSID,
+//     //     .password  = hkWIFI_PASS,
+//     //     .authType  = CYW43_AUTH_WPA2_AES_PSK,
+//     //     .country   = CYW43_COUNTRY_POLAND
+//     // }; WIFI_Init(&hkWIFI);
 
 //     while(FOREVER) {
 //         // printf("IP address: %s\n"  , ip4addr_ntoa(hkWIFI.ipAddress));
