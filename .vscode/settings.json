@@ -34,6 +34,8 @@
         "string.h": "c",
         "irq.h": "c",
         "dma.h": "c",
-        "sync.h": "c"
+        "sync.h": "c",
+        "ds18b20.h": "c",
+        "onewire.h": "c"
     }
 }

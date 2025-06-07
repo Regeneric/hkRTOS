@@ -20,7 +20,6 @@
 
 .program onewire_write
 .wrap_target
-    ; pull block              ;   Pull command from FIFO to osr
     set y, 7                ;   Byte loop iterator
 
 bit_loop:

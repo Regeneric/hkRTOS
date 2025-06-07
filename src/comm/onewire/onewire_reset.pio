@@ -49,7 +49,7 @@ static inline void onewire_reset_program_init(PIO pio, uint sm, uint offset, uin
     sm_config_set_set_pins(&cfg, pin, 1);
     sm_config_set_out_pins(&cfg, pin, 1);
 
-    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
     pio_gpio_init(pio, pin);
     
     pio_sm_init(pio, sm, offset, &cfg);

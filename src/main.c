@@ -28,6 +28,7 @@
 
 #include <sensors/sensors.h>
 #include <sensors/dht11/dht11.h>
+#include <sensors/ds18b20/ds18b20.h>
 
 static DHT_Config_t hkDHT11;
 
@@ -56,27 +57,25 @@ void main(void) {
         .sm     = hkOW_PIO_SM
     }; OneWire_Init(&ow0);
 
-
-    OneWire_WriteByte(&ow0, 0x0);
-    OneWire_WriteByte(&ow0, 0x1);
-    OneWire_WriteByte(&ow0, 0x2);
-    OneWire_WriteByte(&ow0, 0x3);
-    OneWire_WriteByte(&ow0, 0x4);
-    OneWire_WriteByte(&ow0, 0x5);
-    OneWire_WriteByte(&ow0, 0x6);
-    OneWire_WriteByte(&ow0, 0x7);   
+    static u8 ds18Bytes[9];
+    DS18B20_Config_t ds18bs20 = {
+        .address = DS18B20_SKIP_ROM,
+        .data    = ds18Bytes,
+        .length  = sizeof(ds18Bytes),
+        .queue   = NULL
+    };
+   
 
     struct repeating_timer timer;
     add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &timer);
 
-    f32 humidity    = 0.0f;
-    f32 temperature = 0.0f;
-
     while(FOREVER) {
+        DS18B20_Read(&ow0, &ds18bs20);
+
         if(hkDHT11.status != DHT_READ_IN_PROGRESS) {
             if(hkDHT11.status == DHT_READ_SUCCESS) {
-                humidity    = hkDHT11.data[0] + hkDHT11.data[1] * 0.1f;
-                temperature = hkDHT11.data[2] + hkDHT11.data[3] * 0.1f;
+                f32 humidity    = hkDHT11.data[0] + hkDHT11.data[1] * 0.1f;
+                f32 temperature = hkDHT11.data[2] + hkDHT11.data[3] * 0.1f;
                 if(hkDHT11.data[2] & 0x80) temperature = -temperature;
 
                 printf("DHT: Temperature: %.1f*C\n"  , temperature);

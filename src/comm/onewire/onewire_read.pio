@@ -35,8 +35,6 @@ bit_loop:
     nop [31]                ;   Wait for ~32us
     nop [15]                ;   Waot for ~12us so the total slot duration is met
     jmp y--, bit_loop       ;   Read another bit
-
-    ; push                    ;   Push byte to FIFO - IT WILL BE CHANGED TO AUTOPUSH
 .wrap
 ;; 8 instructions in total
 

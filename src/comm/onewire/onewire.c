@@ -39,15 +39,9 @@ void OneWire_Init(OneWire_Config_t* config) {
     return;
 }
 
-b8 OneWire_WriteByte(OneWire_Config_t* config, u8 data) {
-    if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) return false;
-    config->status = ONEW_WRITE_IN_PROGRESS;
-
-    pio_sm_clear_fifos(config->pio, sgOW_Reset_SM);
-    pio_sm_clear_fifos(config->pio, sgOW_Write_SM);
-
+b8 OneWire_Reset(OneWire_Config_t* config) {
     // 1-Wire reset sequence
-    pio_sm_set_enabled(config->pio, sgOW_Reset_SM, false);
+    pio_sm_clear_fifos(config->pio, sgOW_Reset_SM);
     pio_sm_put_blocking(config->pio, sgOW_Reset_SM, 480);
     pio_sm_set_enabled(config->pio, sgOW_Reset_SM, true);
 
@@ -57,12 +51,21 @@ b8 OneWire_WriteByte(OneWire_Config_t* config, u8 data) {
         return false;
     }
 
-    // 1-Wire write byte
     pio_sm_set_enabled(config->pio, sgOW_Reset_SM, false);
+    return true;
+}
+
+b8 OneWire_WriteByte(OneWire_Config_t* config, u8 data) {
+    if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) return false;
+    config->status = ONEW_WRITE_IN_PROGRESS;
+
+    // 1-Wire write byte
+    pio_sm_clear_fifos(config->pio, sgOW_Write_SM);
+    pio_sm_set_enabled(config->pio, sgOW_Write_SM, false);
     pio_sm_put_blocking(config->pio, sgOW_Write_SM, data);
     pio_sm_set_enabled(config->pio, sgOW_Write_SM, true);
 
-    while(!pio_sm_is_tx_fifo_empty(config->pio, sgOW_Reset_SM)) tight_loop_contents();
+    while(!pio_sm_is_tx_fifo_empty(config->pio, sgOW_Write_SM)) tight_loop_contents();
     config->status = ONEW_WRITE_SUCCESS;
 
     return true;
@@ -72,30 +75,35 @@ b8 OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length) {
     if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) return false;
     config->status = ONEW_WRITE_IN_PROGRESS;
 
-    pio_sm_clear_fifos(config->pio, sgOW_Reset_SM);
-    pio_sm_clear_fifos(config->pio, sgOW_Write_SM);
-
-    // 1-Wire reset sequence
-    pio_sm_set_enabled(config->pio, sgOW_Reset_SM, false);
-    pio_sm_put_blocking(config->pio, sgOW_Reset_SM, 480);
-    pio_sm_set_enabled(config->pio, sgOW_Reset_SM, true);
-
-    if(pio_sm_get_blocking(config->pio, sgOW_Reset_SM) != 0) {
-        pio_sm_set_enabled(config->pio, sgOW_Reset_SM, false);
-        printf("No devices found!\n");
-        return false;
-    }
-
     // 1-Wire write buffer
-    pio_sm_set_enabled(config->pio, sgOW_Reset_SM, false);
+    pio_sm_clear_fifos(config->pio, sgOW_Write_SM);
+    pio_sm_set_enabled(config->pio, sgOW_Write_SM, false);
     pio_sm_set_enabled(config->pio, sgOW_Write_SM, true);
 
     for(size_t byte = 0; byte < length; ++byte) {
         pio_sm_put_blocking(config->pio, sgOW_Write_SM, buffer[byte]);
     }
 
-    while(!pio_sm_is_tx_fifo_empty(config->pio, sgOW_Reset_SM)) tight_loop_contents();
+    while(!pio_sm_is_tx_fifo_empty(config->pio, sgOW_Write_SM)) tight_loop_contents();
     config->status = ONEW_WRITE_SUCCESS;
 
+    return true;
+}
+
+b8 OneWire_Read(OneWire_Config_t* config, u8* buffer, size_t length) {
+    if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) return false;
+    config->status = ONEW_READ_IN_PROGRESS;
+
+    pio_sm_clear_fifos(config->pio, sgOW_Read_SM);
+    pio_sm_set_enabled(config->pio, sgOW_Read_SM, false);
+    pio_sm_set_enabled(config->pio, sgOW_Read_SM, true);
+
+    for(size_t byte = 0; byte < length; ++byte) {
+        buffer[byte] = (u8)pio_sm_get_blocking(config->pio, sgOW_Read_SM);
+    }
+
+    pio_sm_set_enabled(config->pio, sgOW_Read_SM, false);
+
+    config->status = ONEW_READ_SUCCESS;
     return true;
 }

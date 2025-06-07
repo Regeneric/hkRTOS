@@ -20,6 +20,7 @@ typedef struct OneWire_Config_t {
 } OneWire_Config_t;
 
 void OneWire_Init(OneWire_Config_t* config);
-b8   OneWire_Read(OneWire_Config_t* config);
+b8   OneWire_Reset(OneWire_Config_t* config);
+b8   OneWire_Read(OneWire_Config_t* config, u8* buffer, size_t length);
 b8   OneWire_WriteByte(OneWire_Config_t* config, u8 data);
 b8   OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length);
