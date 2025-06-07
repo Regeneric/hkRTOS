@@ -24,9 +24,6 @@
         #define hkI2C_SPEED_KHZ_TWO     400U                            // 100 ; 400 ; 1000 ; 1700 ; 3400 ; 5000  -  Above 400 KHz use at own risk
         #define hkI2C_SPEED_TWO        (hkI2C_SPEED_KHZ_TWO * 1000U)    // Conversion from KHz to Hz   
     #endif
-    #define hkSPI_USE_SINGLE_SPI        true                            // Use single or both uC SPIs
-
-
     #define hkENABLE_WIFI               true                            // Enable or disable WiFi module
     #if hkENABLE_WIFI
         #ifndef WIFI_SSID
@@ -43,6 +40,16 @@
         #define hkWIFI_SSID
         #define hkWIFI_PASS
     #endif
+    #define hkENABLE_ONEWIRE            true                            //  Enable 1-Wire communication
+    #if hkENABLE_ONEWIRE
+        #define hkOW_PIO                pio1                            //  Which PIO
+        #define hkOW_PIO_SM             0                               //  Starting SM on that PIO; we need 3 in total
+        #define hkOW_PIN                13                              //  Data pin for the 1-Wire interface
+    #else
+        #define hkOW_PIO
+        #define hkOW_PIO_SM
+        #define hkOW_PIN
+    #endif
 
     // Sensors
     #define hkDHT_USE_SENSOR            true                            // Decide if we want to use DHT11/DHT22 
@@ -50,8 +57,8 @@
         #define hkDHT_PIN               15                              // Data pin of the DHT11/DHT22 sensor
         #define hkDHT_USE_PIO           true                            // Decide if we want to use PIO or CPU
         #if hkDHT_USE_PIO
-            #define hkPIO               pio0                            // Which PIO
-            #define hkPIO_SM            0                               // Which SM on that PIO
+            #define hkDHT_PIO           pio0                            // Which PIO
+            #define hkDHT_PIO_SM        0                               // Which SM on that PIO
             #define hkDHT_USE_DMA       true                            // Decide if we want to use DMA for data collection or CPU
             #if hkDHT_USE_DMA
                 #define hkDHT_DMA_IRQ   DMA_IRQ_0                       // Which DMA IRQ to use   
@@ -59,8 +66,8 @@
                 #define hkDHT_DMA_IRQ
             #endif
         #else
-            #define hkPIO
-            #define hkPIO_SM
+            #define hkDHT_PIO
+            #define hkDHT_PIO_SM
         #endif
     #endif
     #define hkBME280_USE_SENSOR         true                           // Decide if we want to use BME280

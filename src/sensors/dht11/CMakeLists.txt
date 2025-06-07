@@ -20,7 +20,7 @@ endif()
 
 pico_generate_pio_header(libdht11
     ${CMAKE_CURRENT_LIST_DIR}/dht11.pio
-    OUTPUT_DIR ${PROJECT_INC_DIR}/sensors
+    OUTPUT_DIR ${PROJECT_INC_DIR}/sensors/dht11
 )
 
 target_include_directories(libdht11

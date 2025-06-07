@@ -13,32 +13,28 @@
 // ------------- //
 
 #define onewire_write_wrap_target 0
-#define onewire_write_wrap 13
+#define onewire_write_wrap 9
 #define onewire_write_pio_version 1
 
 static const uint16_t onewire_write_program_instructions[] = {
             //     .wrap_target
-    0xe000, //  0: set    pins, 0
-    0xe081, //  1: set    pindirs, 1
-    0x80a0, //  2: pull   block
-    0xe047, //  3: set    y, 7
-    0x6021, //  4: out    x, 1
-    0x0029, //  5: jmp    !x, 9
-    0xe400, //  6: set    pins, 0                [4]
-    0xe001, //  7: set    pins, 1
-    0x000c, //  8: jmp    12
-    0xff00, //  9: set    pins, 0                [31]
-    0xbb42, // 10: nop                           [27]
-    0xe001, // 11: set    pins, 1
-    0x0084, // 12: jmp    y--, 4
-    0x0000, // 13: jmp    0
+    0xe047, //  0: set    y, 7
+    0x6021, //  1: out    x, 1
+    0x0026, //  2: jmp    !x, 6
+    0xe481, //  3: set    pindirs, 1             [4]
+    0xe080, //  4: set    pindirs, 0
+    0x0009, //  5: jmp    9
+    0xff81, //  6: set    pindirs, 1             [31]
+    0xbb42, //  7: nop                           [27]
+    0xe080, //  8: set    pindirs, 0
+    0x0081, //  9: jmp    y--, 1
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
 static const struct pio_program onewire_write_program = {
     .instructions = onewire_write_program_instructions,
-    .length = 14,
+    .length = 10,
     .origin = -1,
     .pio_version = onewire_write_pio_version,
 #if PICO_PIO_VERSION > 0
@@ -51,5 +47,18 @@ static inline pio_sm_config onewire_write_program_get_default_config(uint offset
     sm_config_set_wrap(&c, offset + onewire_write_wrap_target, offset + onewire_write_wrap);
     return c;
 }
+
+static inline void onewire_write_program_init(PIO pio, uint sm, uint offset, uint pin) {    
+    pio_sm_config cfg = onewire_write_program_get_default_config(offset);
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys) / 1000000.0f));
+    sm_config_set_in_pins(&cfg, pin);
+    sm_config_set_set_pins(&cfg, pin, 1);
+    sm_config_set_out_pins(&cfg, pin, 1);
+    sm_config_set_out_shift(&cfg, false, true, 8);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+    pio_sm_init(pio, sm, offset, &cfg);
+}
+
 #endif
 

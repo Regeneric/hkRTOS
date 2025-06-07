@@ -19,10 +19,8 @@
 ;                   the slot.
 
 .program onewire_write
-send_data:
-    set pins, 0             ;   Explicit logical '0'
-    set pindirs, 1          ;   DATA as output; DATA LOW
-    pull block              ;   Pull command from FIFO to osr
+.wrap_target
+    ; pull block              ;   Pull command from FIFO to osr
     set y, 7                ;   Byte loop iterator
 
 bit_loop:
@@ -30,15 +28,33 @@ bit_loop:
     jmp !x, send_zero       ;   We've got a logical '1'; otherwise we've got a logical '0'   
 
 send_one:
-    set pins, 0 [4]         ;   Drive DATA LOW (~5us)
-    set pins, 1             ;   Drive DATA HIGH
+    set pindirs, 1 [4]      ;   DATA as output; drive DATA LOW (~5us)
+    set pindirs, 0          ;   DATA as input; drive DATA HIGH
     jmp bit_loop_end        ;   Read another bit
 
 send_zero:
-    set pins, 0 [31]        ;   Drive DATA LOW (~60us)
+    set pindirs, 1 [31]     ;   DATA as output; drive DATA LOW (~60us)
     nop [27]                ;   Wait till the write time slot for 0 is met
-    set pins 1              ;   Drive DATA HIGH
+    set pindirs, 0          ;   Data as input; drive DATA HIGH
 
 bit_loop_end:
     jmp y--, bit_loop       ;   Read another bit
-    jmp send_data           ;   Read another byte
+.wrap
+;; 10 instructions in total
+
+% c-sdk {
+static inline void onewire_write_program_init(PIO pio, uint sm, uint offset, uint pin) {    
+    pio_sm_config cfg = onewire_write_program_get_default_config(offset);
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys) / 1000000.0f));
+    sm_config_set_in_pins(&cfg, pin);
+    sm_config_set_set_pins(&cfg, pin, 1);
+    sm_config_set_out_pins(&cfg, pin, 1);
+    
+    sm_config_set_out_shift(&cfg, false, true, 8);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+    
+    pio_sm_init(pio, sm, offset, &cfg);
+}
+%}

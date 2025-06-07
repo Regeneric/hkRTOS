@@ -19,10 +19,6 @@ void DHT11_Init(DHT_Config_t* config) {
 
     sgDHT11_SM_Offset = pio_add_program(config->pio, &dht11_program);
     dht11_program_init(config->pio, config->sm, sgDHT11_SM_Offset, config->gpio);
-    
-    #if hkDHT11_USE_DMA
-
-    #endif
 
     config->status = DHT_READ_SUCCESS;
     return;

@@ -27,7 +27,6 @@
     set y, 7                ;   Byte loop iterator
 
 bit_loop:
-    set pins, 0             ;   Explicit logical '0'
     set pindirs, 1 [2]      ;   DATA as output; DATA LOW for ~3us
     set pindirs, 0          ;   DATA as input; DATA HIGH because of pull-up resistor
 
@@ -37,5 +36,23 @@ bit_loop:
     nop [15]                ;   Waot for ~12us so the total slot duration is met
     jmp y--, bit_loop       ;   Read another bit
 
-    push                    ;   Push byte to FIFO
+    ; push                    ;   Push byte to FIFO - IT WILL BE CHANGED TO AUTOPUSH
 .wrap
+;; 8 instructions in total
+
+% c-sdk {
+static inline void onewire_read_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config cfg = onewire_read_program_get_default_config(offset);
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys) / 1000000.0f));
+    sm_config_set_in_pins(&cfg, pin);
+    sm_config_set_set_pins(&cfg, pin, 1);
+    sm_config_set_out_pins(&cfg, pin, 1);
+
+    sm_config_set_in_shift(&cfg, false, true, 8);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+    
+    pio_sm_init(pio, sm, offset, &cfg);
+}
+%}

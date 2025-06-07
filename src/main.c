@@ -21,6 +21,7 @@
 
 #include <comm/i2c.h>
 #include <comm/wifi.h>
+#include <comm/onewire/onewire.h>
 
 #include <storage/storage.h>
 #include <storage/eeprom.h>
@@ -44,9 +45,26 @@ void main(void) {
         hkDHT11.length = sizeof(dataBytes);
         hkDHT11.queue  = NULL;
         hkDHT11.status = DHT_INIT;
-        hkDHT11.pio    = hkPIO;
-        hkDHT11.sm     = hkPIO_SM;
+        hkDHT11.pio    = hkDHT_PIO;
+        hkDHT11.sm     = hkDHT_PIO_SM;
     DHT11_Init(&hkDHT11);
+
+    OneWire_Config_t ow0 = {
+        .gpio   = hkOW_PIN,
+        .status = ONEW_INIT,
+        .pio    = hkOW_PIO,
+        .sm     = hkOW_PIO_SM
+    }; OneWire_Init(&ow0);
+
+
+    OneWire_WriteByte(&ow0, 0x0);
+    OneWire_WriteByte(&ow0, 0x1);
+    OneWire_WriteByte(&ow0, 0x2);
+    OneWire_WriteByte(&ow0, 0x3);
+    OneWire_WriteByte(&ow0, 0x4);
+    OneWire_WriteByte(&ow0, 0x5);
+    OneWire_WriteByte(&ow0, 0x6);
+    OneWire_WriteByte(&ow0, 0x7);   
 
     struct repeating_timer timer;
     add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &timer);

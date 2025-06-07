@@ -13,28 +13,26 @@
 // ------------ //
 
 #define onewire_read_wrap_target 0
-#define onewire_read_wrap 9
+#define onewire_read_wrap 7
 #define onewire_read_pio_version 1
 
 static const uint16_t onewire_read_program_instructions[] = {
             //     .wrap_target
     0xe047, //  0: set    y, 7
-    0xe000, //  1: set    pins, 0
-    0xe281, //  2: set    pindirs, 1             [2]
-    0xe080, //  3: set    pindirs, 0
-    0xa542, //  4: nop                           [5]
-    0x4001, //  5: in     pins, 1
-    0xbf42, //  6: nop                           [31]
-    0xaf42, //  7: nop                           [15]
-    0x0081, //  8: jmp    y--, 1
-    0x8020, //  9: push   block
+    0xe281, //  1: set    pindirs, 1             [2]
+    0xe080, //  2: set    pindirs, 0
+    0xa542, //  3: nop                           [5]
+    0x4001, //  4: in     pins, 1
+    0xbf42, //  5: nop                           [31]
+    0xaf42, //  6: nop                           [15]
+    0x0081, //  7: jmp    y--, 1
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
 static const struct pio_program onewire_read_program = {
     .instructions = onewire_read_program_instructions,
-    .length = 10,
+    .length = 8,
     .origin = -1,
     .pio_version = onewire_read_pio_version,
 #if PICO_PIO_VERSION > 0
@@ -47,5 +45,18 @@ static inline pio_sm_config onewire_read_program_get_default_config(uint offset)
     sm_config_set_wrap(&c, offset + onewire_read_wrap_target, offset + onewire_read_wrap);
     return c;
 }
+
+static inline void onewire_read_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config cfg = onewire_read_program_get_default_config(offset);
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys) / 1000000.0f));
+    sm_config_set_in_pins(&cfg, pin);
+    sm_config_set_set_pins(&cfg, pin, 1);
+    sm_config_set_out_pins(&cfg, pin, 1);
+    sm_config_set_in_shift(&cfg, false, true, 8);
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false);
+    pio_gpio_init(pio, pin);
+    pio_sm_init(pio, sm, offset, &cfg);
+}
+
 #endif
 

@@ -16,15 +16,42 @@
 ; Detect End        Master waits for line HIGH      Master confirms the slave has finished its pulse.
 
 .program onewire_reset
-    set pins, 0             ;   Explicit logical '0'
-    set pindirs, 1          ;   DATA as output; DATA LOW
-    pull block              ;   Pull timeout value from the FIFO into osr 
-    mov x, osr              ;   Load timeout value from osr to x
+    pull block                  ;   Pull timeout value from the FIFO into osr 
+    mov x, osr                  ;   Load timeout value from osr to x
+    set pindirs, 1              ;   DATA as output; DATA LOW
 
 reset_signal:
-    jmp x--, reset_signal   ;   Hold DATA LOW for at least 480us
+    jmp x--, reset_signal       ;   Hold DATA LOW for at least 480us
+    set pindirs, 0              ;   DATA as input; DATA HIGH because of pull-up resistor
+    set x, 31                   ;   Tiemout counter for presence check
 
-handshake:
-    set pindirs, 0          ;   DATA as input; DATA HIGH because of pull-up resistor
-    wait 0 pin 0 [31]       ;   Wait for DATA LOW  (60 - 240us)
-    wait 1 pin 0 [31]       ;   Wait for DATA HIGH (15 - 60us)
+wait_low:
+    jmp x--, check_pin          ;   Check if DATA line is HIGH or LOW
+    jmp failure                 ;   No device present
+
+check_pin:
+    jmp pin, wait_low           ;   If DATA line is still HIGH, iterate over and wait
+    mov isr, null               ;   DATA went LOW, device is present; load 0 into isr
+    jmp result
+
+failure:
+    mov isr, ~null              ;   DATA never went LOW, device is not present; load -1 into isr
+
+result:
+    push
+;; 13 instructions in total
+
+% c-sdk {
+static inline void onewire_reset_program_init(PIO pio, uint sm, uint offset, uint pin) {
+    pio_sm_config cfg = onewire_reset_program_get_default_config(offset);
+    sm_config_set_clkdiv(&cfg, ((float)clock_get_hz(clk_sys)/1000000.0f));  // 1 MHz aka 1 tick == 1us
+    sm_config_set_in_pins(&cfg, pin);
+    sm_config_set_set_pins(&cfg, pin, 1);
+    sm_config_set_out_pins(&cfg, pin, 1);
+
+    pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+    pio_gpio_init(pio, pin);
+    
+    pio_sm_init(pio, sm, offset, &cfg);
+}
+%}
