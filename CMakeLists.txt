@@ -118,3 +118,9 @@ if(CMAKE_EXPORT_COMPILE_COMMANDS)
             "${CMAKE_SOURCE_DIR}/.vscode/compile_commands.json"
   )
 endif()
+
+execute_process(
+    COMMAND
+        python htmlconvert.py
+        WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+)

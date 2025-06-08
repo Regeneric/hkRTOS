@@ -6,6 +6,7 @@
 #include <hardware/dma.h>
 #include <hardware/irq.h>
 
+#include <core/logger.h>
 #include <sensors/sensors.h>
 #include <sensors/dht11/dht11.h>
 #include <sensors/dht11/dht11.pio.h>
@@ -16,11 +17,12 @@ static u32 sgDHT11_DMA_Channel = 0;
 static DHT_Config_t* sgDHT11_Config = NULL;
 
 static void DHT11_DMA_ISR();
-static void DHT11_ProcessData(DHT_Config_t* config);
 static void DHT11_DMA_Init(const DHT_Config_t* config);
 
 void DHT11_Init(DHT_Config_t* config) {
-    if(config->status == DHT_INIT) printf("Reinitalizing DHT sensor...\n");
+    HTRACE("dht11_dma.c -> DHT11_Init(DHT_Config_t*):void");
+
+    if(config->status == DHT_INIT) HINFO("Reinitalizing DHT sensor...");
 
     sgDHT11_SM_Offset = pio_add_program(config->pio, &dht11_program);
     dht11_program_init(config->pio, config->sm, sgDHT11_SM_Offset, config->gpio);
@@ -33,6 +35,8 @@ void DHT11_Init(DHT_Config_t* config) {
 }
 
 static void DHT11_DMA_Init(const DHT_Config_t* config) {
+    HTRACE("dht11_dma.c -> s:DHT11_DMA_Init(DHT_Config_t*):void");
+
     sgDHT11_DMA_Channel = dma_claim_unused_channel(true);
     dma_channel_config cfg = dma_channel_get_default_config(sgDHT11_DMA_Channel);
     
@@ -52,12 +56,14 @@ static void DHT11_DMA_Init(const DHT_Config_t* config) {
 }
 
 b8 DHT11_Read(DHT_Config_t* config) {
+    HTRACE("dht11_dma.c -> DHT11_Read(DHT_Config_t*):b8");
+
     if(config->length < 5) {
-        printf("Data buffer is too small!\n");
+        HERROR("Data buffer is too small!");
         return false;
     }
     if(config->status == DHT_READ_IN_PROGRESS) {
-        printf("Another read process in progress!\n");
+        HDEBUG("Another read process in progress!");
         return false;
     }
 
@@ -67,29 +73,15 @@ b8 DHT11_Read(DHT_Config_t* config) {
     dma_channel_set_write_addr(sgDHT11_DMA_Channel, config->data, true);
     pio_sm_clear_fifos(config->pio, config->sm);
     pio_sm_set_enabled(config->pio , config->sm, true);
-    pio_sm_put_blocking(config->pio, config->sm, 20000U);
-    pio_sm_put_blocking(config->pio, config->sm, 30U);
+    pio_sm_put_blocking(config->pio, config->sm, 20000U);   // 20ms delay
+    pio_sm_put_blocking(config->pio, config->sm, 30U);      // 30us delay
 
     return true;
 }
 
-static void DHT11_ProcessData(DHT_Config_t* config) {
-    if(config == NULL) {
-        printf("DHT was not properly initialized!\n");
-        return;
-    }
 
-    u8 checksum = (config->data[0] + config->data[1] + config->data[2] + config->data[3]) & 0xFF; 
-    if(checksum != config->data[4]) {
-        printf("Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x\n", checksum, config->data[4]);
-        config->status = DHT_READ_BAD_CHECKSUM;
-        return;
-    } config->status = DHT_READ_SUCCESS;
-}
-
-
-static void DHT11_DMA_ISR() {
-    DHT11_ProcessData(sgDHT11_Config);
+static inline void DHT11_DMA_ISR() {
+    sgDHT11_Config->status = DHT_READ_SUCCESS;
     dma_hw->ints0 = (1u << sgDHT11_DMA_Channel);    // Clears the interrupt from the DMA
 }
 #endif

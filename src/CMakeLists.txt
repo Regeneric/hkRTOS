@@ -26,7 +26,8 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         pico_stdlib 
         pico_stdio
-        pico_cyw43_arch_lwip_sys_freertos
+        pico_cyw43_arch_lwip_threadsafe_background
+        # pico_cyw43_arch_lwip_sys_freertos
         # pico_multicore
 
         hardware_pio

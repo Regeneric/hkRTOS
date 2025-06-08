@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <SEGGER_SYSVIEW.h>
 
 #ifndef true
     #define true         1
@@ -47,7 +48,6 @@ typedef int32_t             i32;
 typedef int64_t             i64;
 
 // Volatile signed types
-// Standard unsigned types
 typedef volatile int8_t     vi8;
 typedef volatile int16_t    vi16;
 typedef volatile int32_t    vi32;

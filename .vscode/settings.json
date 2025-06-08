@@ -36,6 +36,15 @@
         "dma.h": "c",
         "sync.h": "c",
         "ds18b20.h": "c",
-        "onewire.h": "c"
+        "onewire.h": "c",
+        "http_client.h": "c",
+        "tcp.h": "c",
+        "network.h": "c",
+        "pio.h": "c",
+        "format": "c",
+        "dht11.pio.h": "c",
+        "ip4_addr.h": "c",
+        "logger.h": "c",
+        "onewire_reset.pio.h": "c"
     }
 }

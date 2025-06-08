@@ -1,6 +1,7 @@
 add_library(libstorage 
     STATIC
         24lc01b.c
+        w25q128.c
 )
 
 
@@ -29,4 +30,5 @@ target_link_libraries(libstorage
 
         hardware_gpio
         hardware_i2c 
+        hardware_spi
 )

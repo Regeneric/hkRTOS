@@ -19,8 +19,10 @@
 // hkRTOS
 #include <defines.h>
 
+#include <core/logger.h>
+
 #include <comm/i2c.h>
-#include <comm/wifi.h>
+#include <comm/network/wifi.h>
 #include <comm/onewire/onewire.h>
 
 #include <storage/storage.h>
@@ -41,14 +43,20 @@ void main(void) {
     stdio_init_all();
 
     static u8 dataBytes[5];
-        hkDHT11.gpio   = hkDHT_PIN;
-        hkDHT11.data   = dataBytes;
-        hkDHT11.length = sizeof(dataBytes);
-        hkDHT11.queue  = NULL;
-        hkDHT11.status = DHT_INIT;
-        hkDHT11.pio    = hkDHT_PIO;
-        hkDHT11.sm     = hkDHT_PIO_SM;
+    hkDHT11.gpio   = hkDHT_PIN;
+    hkDHT11.data   = dataBytes;
+    hkDHT11.length = sizeof(dataBytes);
+    hkDHT11.queue  = NULL;
+    hkDHT11.status = DHT_INIT;
+    hkDHT11.pio    = hkDHT_PIO;
+    hkDHT11.sm     = hkDHT_PIO_SM;
     DHT11_Init(&hkDHT11);
+
+    DHT_DataPacket_t hkDHT11_Data = {
+        .temperature = 0.0f,
+        .humidity    = 0.0f,
+        .jsonify     = DHT11_Jsonify
+    };
 
     OneWire_Config_t ow0 = {
         .gpio   = hkOW_PIN,
@@ -58,7 +66,7 @@ void main(void) {
     }; OneWire_Init(&ow0);
 
     static u8 ds18Bytes[9];
-    DS18B20_Config_t ds18bs20 = {
+    DS18B20_Config_t hkDS18B20 = {
         .address = DS18B20_SKIP_ROM,
         .data    = ds18Bytes,
         .length  = sizeof(ds18Bytes),
@@ -70,19 +78,19 @@ void main(void) {
     add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &timer);
 
     while(FOREVER) {
-        DS18B20_Read(&ow0, &ds18bs20);
+        DS18B20_Read(&ow0, &hkDS18B20);
 
         if(hkDHT11.status != DHT_READ_IN_PROGRESS) {
             if(hkDHT11.status == DHT_READ_SUCCESS) {
-                f32 humidity    = hkDHT11.data[0] + hkDHT11.data[1] * 0.1f;
-                f32 temperature = hkDHT11.data[2] + hkDHT11.data[3] * 0.1f;
-                if(hkDHT11.data[2] & 0x80) temperature = -temperature;
+                DHT11_ProcessData(&hkDHT11, &hkDHT11_Data);
+                HDEBUG("DHT: Temperature: %.1f*C", hkDHT11_Data.temperature);
+                HDEBUG("DHT: Humidity:    %.0f%%", hkDHT11_Data.humidity);
+                char* hkDHT11_Json = hkDHT11_Data.jsonify(&hkDHT11_Data);
+                HDEBUG(hkDHT11_Json);
 
-                printf("DHT: Temperature: %.1f*C\n"  , temperature);
-                printf("DHT: Humidity:    %.0f%%\n\n", humidity);
                 sleep_ms(1000);
             } else {
-                printf("DHT: Data read failed\n");
+                HWARN("DHT: Data read failed");
                 sleep_ms(500);
             }
         }

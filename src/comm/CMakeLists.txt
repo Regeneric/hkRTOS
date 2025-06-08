@@ -1,9 +1,9 @@
 add_subdirectory(onewire)
+add_subdirectory(network)
 
 add_library(libcomm 
     STATIC
         i2c.c
-        wifi.c
 )
 
 
@@ -26,10 +26,12 @@ target_include_directories(libcomm
 target_link_libraries(libcomm
     PRIVATE
         libonewire
+        libnetwork
 
     PUBLIC
         pico_stdlib 
-        pico_cyw43_arch_lwip_sys_freertos
+        # pico_cyw43_arch_lwip_sys_freertos
+        pico_cyw43_arch_lwip_threadsafe_background
 
         hardware_gpio
         hardware_pio

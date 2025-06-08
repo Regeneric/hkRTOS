@@ -7,6 +7,7 @@
 #include <hardware/pio.h>
 #include <hardware/clocks.h>
 
+#include <core/logger.h>
 #include <sensors/sensors.h>
 #include <sensors/dht11/dht11.h>
 #include <sensors/dht11/dht11.pio.h>
@@ -15,7 +16,9 @@
 static u32 sgDHT11_SM_Offset = 0;
 
 void DHT11_Init(DHT_Config_t* config) {
-    if(config->status == DHT_INIT) printf("Reinitalizing DHT sensor...\n");
+    HTRACE("dht11_pio.c -> DHT11_Init(DHT_Config_t*):void");
+
+    if(config->status == DHT_INIT) HINFO("Reinitalizing DHT sensor...");
 
     sgDHT11_SM_Offset = pio_add_program(config->pio, &dht11_program);
     dht11_program_init(config->pio, config->sm, sgDHT11_SM_Offset, config->gpio);
@@ -25,6 +28,8 @@ void DHT11_Init(DHT_Config_t* config) {
 }
 
 b8 DHT11_Read(DHT_Config_t* config) {
+    HTRACE("dht11_pio.c -> DHT11_Read(DHT_Config_t*):void");
+
     if(config->length < 5) return false;
     if(config->status == DHT_READ_IN_PROGRESS) return false;
     
@@ -43,7 +48,7 @@ b8 DHT11_Read(DHT_Config_t* config) {
     
     u8 checksum = (config->data[0] + config->data[1] + config->data[2] + config->data[3]) & 0xFF; 
     if(checksum != config->data[4]) {
-        printf("Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x\n", checksum, config->data[4]);
+        HDEBUG("Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x", checksum, config->data[4]);
         return false;
     } return true;
 }

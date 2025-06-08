@@ -39,7 +39,6 @@ target_include_directories(libonewire
 target_link_libraries(libonewire
     PUBLIC
         pico_stdlib 
-        pico_cyw43_arch_lwip_sys_freertos
 
         hardware_gpio
         hardware_pio

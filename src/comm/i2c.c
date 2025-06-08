@@ -2,9 +2,12 @@
 #include <hardware/gpio.h>
 #include <hardware/i2c.h>
 
+#include <core/logger.h>
 #include <comm/i2c.h>
 
 void I2C_Init(const I2C_Config_t* config) {
+    HTRACE("i2c.c -> I2C_Init(const I2C_Config_t*):void");
+
     i2c_init(config->i2c, config->speed);
 
     gpio_set_function(config->sda, GPIO_FUNC_I2C);
@@ -15,6 +18,8 @@ void I2C_Init(const I2C_Config_t* config) {
 }
 
 void I2C_Stop(const I2C_Config_t* config) {
+    HTRACE("i2c.c -> I2C_Stop(const I2C_Config_t*):void");
+
     gpio_deinit(config->sda);
     gpio_deinit(config->scl);
 

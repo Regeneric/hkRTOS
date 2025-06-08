@@ -2,6 +2,8 @@
 #include <defines.h>
 
 #ifdef HPLATFORM_ARM
+    #define HK_LOG_LEVEL                LOG_TRACE                       // TRACE | DEBUG | INFO | WARN | ERROR
+
     // Communication
     #define hkI2C_USE_SINGLE_I2C        true                            // Use single or both uC I2Cs
     #define hkI2C_BUS_COUNT            (hkI2C_USE_SINGLE_I2C ? 1 : 2)   // Active I2C buses count

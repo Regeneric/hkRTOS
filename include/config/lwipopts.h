@@ -5,8 +5,8 @@
 
 // allow override in some examples
 #ifndef NO_SYS
-// #define NO_SYS                      1
-#define NO_SYS                      0       // We're using RTOS
+#define NO_SYS                      1       // We're not using RTOS
+// #define NO_SYS                      0       // We're using RTOS
 #endif
 // allow override in some examples
 #ifndef LWIP_SOCKET
@@ -52,6 +52,12 @@
 #define LWIP_NETIF_TX_SINGLE_PBUF   1
 #define DHCP_DOES_ARP_CHECK         0
 #define LWIP_DHCP_DOES_ACD_CHECK    0
+
+#define LWIP_HTTPD                  1
+#define LWIP_HTTPD_SSI              1
+#define LWIP_HTTPD_CGI              1
+#define LWIP_HTTPD_SSI_INCLUDE_TAG  0
+#define HTTPD_FSTADA_FILE           "html.c"
 
 #ifndef NDEBUG
 #define LWIP_DEBUG                  1

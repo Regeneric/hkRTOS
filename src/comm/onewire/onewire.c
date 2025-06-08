@@ -7,6 +7,7 @@
 #include <hardware/pio.h>
 #include <hardware/clocks.h>
 
+#include <core/logger.h>
 #include <comm/onewire/onewire.h>
 #include <comm/onewire/onewire_reset.pio.h>
 #include <comm/onewire/onewire_write.pio.h>
@@ -21,7 +22,9 @@ static u8 sgOW_Write_SM = 0;
 static u8 sgOW_Read_SM  = 0;
 
 void OneWire_Init(OneWire_Config_t* config) {
-    if(config->status == ONEW_INIT) printf("Reinitalizing 1-Wire interface...\n");
+    HTRACE("onewire.c -> OneWire_Init(OneWire_Config_t*):void");
+
+    if(config->status == ONEW_INIT) HINFO("Reinitalizing 1-Wire interface...");
 
     sgOW_Reset_SM_Offset = pio_add_program(config->pio, &onewire_reset_program);
     sgOW_Write_SM_Offset = pio_add_program(config->pio, &onewire_write_program);
@@ -40,6 +43,8 @@ void OneWire_Init(OneWire_Config_t* config) {
 }
 
 b8 OneWire_Reset(OneWire_Config_t* config) {
+    HTRACE("onewire.c -> OneWire_Reset(OneWire_Config_t*):b8");
+
     // 1-Wire reset sequence
     pio_sm_clear_fifos(config->pio, sgOW_Reset_SM);
     pio_sm_put_blocking(config->pio, sgOW_Reset_SM, 480);
@@ -47,7 +52,7 @@ b8 OneWire_Reset(OneWire_Config_t* config) {
 
     if(pio_sm_get_blocking(config->pio, sgOW_Reset_SM) != 0) {
         pio_sm_set_enabled(config->pio, sgOW_Reset_SM, false);
-        printf("No devices found!\n");
+        HDEBUG("No devices found!");
         return false;
     }
 
@@ -56,6 +61,8 @@ b8 OneWire_Reset(OneWire_Config_t* config) {
 }
 
 b8 OneWire_WriteByte(OneWire_Config_t* config, u8 data) {
+    HTRACE("onewire.c -> OneWire_WriteByte(OneWire_Config_t*, u8):b8");
+
     if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) return false;
     config->status = ONEW_WRITE_IN_PROGRESS;
 
@@ -72,6 +79,8 @@ b8 OneWire_WriteByte(OneWire_Config_t* config, u8 data) {
 }
 
 b8 OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length) {
+    HTRACE("onewire.c -> OneWire_Write(OneWire_Config_t*, u8*, size_t):b8");
+
     if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) return false;
     config->status = ONEW_WRITE_IN_PROGRESS;
 
@@ -91,6 +100,8 @@ b8 OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length) {
 }
 
 b8 OneWire_Read(OneWire_Config_t* config, u8* buffer, size_t length) {
+    HTRACE("onewire.c -> OneWire_Read(OneWire_Config_t*, u8*, size_t):b8");
+
     if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) return false;
     config->status = ONEW_READ_IN_PROGRESS;
 
