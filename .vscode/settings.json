@@ -45,6 +45,11 @@
         "dht11.pio.h": "c",
         "ip4_addr.h": "c",
         "logger.h": "c",
-        "onewire_reset.pio.h": "c"
+        "onewire_reset.pio.h": "c",
+        "sh1107.h": "c",
+        "arm.h": "c",
+        "display.h": "c",
+        "font_5_7.h": "c",
+        "ssd1327_config.h": "c"
     }
 }

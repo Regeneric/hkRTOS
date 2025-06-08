@@ -1,5 +1,6 @@
 #pragma once
 #include <defines.h>
+#include <hardware/gpio.h>
 
 #ifndef GPIO_HIGH
     #define GPIO_HIGH   true

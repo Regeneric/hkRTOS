@@ -32,6 +32,10 @@
 #include <sensors/dht11/dht11.h>
 #include <sensors/ds18b20/ds18b20.h>
 
+#include <display/display.h>
+#include <display/gfx/gfx.h>
+#include <display/ssd1327/ssd1327_config.h>
+
 static DHT_Config_t hkDHT11;
 
 static bool DHT11_Timer_ISR(struct repeating_timer *t) {
@@ -39,158 +43,38 @@ static bool DHT11_Timer_ISR(struct repeating_timer *t) {
     return true;
 }
 
+// struct repeating_timer timer;
+// add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &timer);
+
+
+
 void main(void) {
     stdio_init_all();
 
-    static u8 dataBytes[5];
-    hkDHT11.gpio   = hkDHT_PIN;
-    hkDHT11.data   = dataBytes;
-    hkDHT11.length = sizeof(dataBytes);
-    hkDHT11.queue  = NULL;
-    hkDHT11.status = DHT_INIT;
-    hkDHT11.pio    = hkDHT_PIO;
-    hkDHT11.sm     = hkDHT_PIO_SM;
-    DHT11_Init(&hkDHT11);
+    I2C_Config_t i2c = {
+        .i2c   = hkI2C,
+        .scl   = hkI2C_SCL,
+        .sda   = hkI2C_SDA,
+        .speed = hkI2C_SPEED
+    }; I2C_Init(&i2c);
 
-    DHT_DataPacket_t hkDHT11_Data = {
-        .temperature = 0.0f,
-        .humidity    = 0.0f,
-        .jsonify     = DHT11_Jsonify
-    };
-
-    OneWire_Config_t ow0 = {
-        .gpio   = hkOW_PIN,
-        .status = ONEW_INIT,
-        .pio    = hkOW_PIO,
-        .sm     = hkOW_PIO_SM
-    }; OneWire_Init(&ow0);
-
-    static u8 ds18Bytes[9];
-    DS18B20_Config_t hkDS18B20 = {
-        .address = DS18B20_SKIP_ROM,
-        .data    = ds18Bytes,
-        .length  = sizeof(ds18Bytes),
-        .queue   = NULL
-    };
-   
-
-    struct repeating_timer timer;
-    add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &timer);
-
-    while(FOREVER) {
-        DS18B20_Read(&ow0, &hkDS18B20);
-
-        if(hkDHT11.status != DHT_READ_IN_PROGRESS) {
-            if(hkDHT11.status == DHT_READ_SUCCESS) {
-                DHT11_ProcessData(&hkDHT11, &hkDHT11_Data);
-                HDEBUG("DHT: Temperature: %.1f*C", hkDHT11_Data.temperature);
-                HDEBUG("DHT: Humidity:    %.0f%%", hkDHT11_Data.humidity);
-                char* hkDHT11_Json = hkDHT11_Data.jsonify(&hkDHT11_Data);
-                HDEBUG(hkDHT11_Json);
-
-                sleep_ms(1000);
-            } else {
-                HWARN("DHT: Data read failed");
-                sleep_ms(500);
-            }
-        }
-    }
-}
+    DisplayConfig_t hkSH1107 = {
+        .width    = 128,
+        .height   = 128,
+        .contrast = 0x4F,
+        .address  = SSD1327_ADDRESS
+    }; Display_Init(&i2c, &hkSH1107);
 
 
-// void main(void) {
-//     stdio_init_all();
-
-//     u8 dataBytes[5];
-//     DHT_Config_t hkDHT11 = {
-//         .gpio   = hkDHT11_PIN,
-//         .data   = dataBytes,
-//         .length = sizeof(dataBytes),
-//         .queue  = NULL,
-//         .status = DHT_INIT,
-//         .pio    = hkPIO,
-//         .sm     = hkPIO_SM
-//     }; DHT11_Init(&hkDHT11);
-
-//     BaseType_t resp = xTaskCreate(DHT11_ReadTask, "DHT11 Read", 128, &hkDHT11, 2, NULL);
-//     assert(resp == pdPASS);
+    hkClearBuffer();
     
-//     // resp = xTaskCreate();
+    hkDrawChar(10, 10, 'A', 1);
+    hkDrawString(10, 20, "IT WORKS!", 1);
+    hkDrawRect(0, 0, 128, 128, 1);
+    
+    hkDisplay();
 
-//     vTaskStartScheduler();
-//     while(FOREVER);
-// }
+    sleep_ms(2000);
 
-
-
-// void main(void) {
-//     stdio_init_all();
-
-//     I2C_Config_t hkI2C0 = {
-//         .i2c   = hkI2C,
-//         .sda   = hkI2C_SDA,
-//         .scl   = hkI2C_SCL,
-//         .speed = hkI2C_SPEED,
-//     }; I2C_Init(&hkI2C0);
- 
-//     u8 dataBytes[5];
-//     DHT_Config_t hkDHT11 = {
-//         .gpio   = hkDHT11_PIN,
-//         .data   = dataBytes,
-//         .length = sizeof(dataBytes),
-//         .queue  = NULL
-//         // .pio    = hkPIO,
-//         // .sm  = hkPIO_SM
-//     }; DHT11_Init(&hkDHT11);
-
-//     DataPacket_t eepromWrite = {
-//         .address = 0x00,
-//         .data    = dataBytes,
-//         .size    = sizeof(dataBytes)
-//     };
-
-//     u8 eepromBytes[5];
-//     DataPacket_t eepromRead = {
-//         .address = 0x00,
-//         .data    = eepromBytes,
-//         .size    = sizeof(eepromBytes)
-//     };
-
-//     f32 humidity    = 0.0f;
-//     f32 temperature = 0.0f;
-
-//     // WIFI_Config_t hkWIFI = {
-//     //     .ssid      = hkWIFI_SSID,
-//     //     .password  = hkWIFI_PASS,
-//     //     .authType  = CYW43_AUTH_WPA2_AES_PSK,
-//     //     .country   = CYW43_COUNTRY_POLAND
-//     // }; WIFI_Init(&hkWIFI);
-
-//     while(FOREVER) {
-//         // printf("IP address: %s\n"  , ip4addr_ntoa(hkWIFI.ipAddress));
-//         // printf("Network mask: %s\n", ip4addr_ntoa(hkWIFI.ipMask));
-//         // printf("Gateway: %s\n\n"   , ip4addr_ntoa(hkWIFI.ipGateway));
-
-//         DHT11_Read(&hkDHT11);
-
-//         humidity    = hkDHT11.data[0] + hkDHT11.data[1] * 0.1f;
-//         temperature = hkDHT11.data[2] + hkDHT11.data[3] * 0.1f;
-//         if(hkDHT11.data[2] & 0x80) temperature = -temperature;
-
-//         printf("DHT: Temperature: %.1f*C\n"  , temperature);
-//         printf("DHT: Humidity:    %.0f%%\n\n", humidity);
-
-//         // vEEPROM_Write(&hkI2C0, &eepromWrite);
-//         // sleep_ms(100);
-//         // EEPROM_Read(&hkI2C0, &eepromRead);
-
-//         // humidity    = eepromRead.data[0] + eepromRead.data[1] * 0.1f;
-//         // temperature = eepromRead.data[2] + eepromRead.data[3] * 0.1f;
-//         // if(eepromRead.data[2] & 0x80) temperature = -temperature;
-
-//         // printf("EEP: Temperature: %.1f*C\n"  , temperature);
-//         // printf("EEP: Humidity:    %.0f%%\n\n", humidity);
-
-//         sleep_ms(1000);
-//     }
-// }
+    while(FOREVER) tight_loop_contents();
+}

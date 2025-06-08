@@ -2,7 +2,7 @@
 #include <defines.h>
 
 #ifdef HPLATFORM_ARM
-    #define HK_LOG_LEVEL                LOG_TRACE                       // TRACE | DEBUG | INFO | WARN | ERROR
+    #define HK_LOG_LEVEL                LOG_WARN                       // TRACE | DEBUG | INFO | WARN | ERROR
 
     // Communication
     #define hkI2C_USE_SINGLE_I2C        true                            // Use single or both uC I2Cs
@@ -11,7 +11,7 @@
         #define hkI2C                   i2c0                            // i2c0 or i2c1 ; Default: i2c0
         #define hkI2C_SDA               PICO_DEFAULT_I2C_SDA_PIN        //                Default: 4
         #define hkI2C_SCL               PICO_DEFAULT_I2C_SCL_PIN        //                Default: 5
-        #define hkI2C_SPEED_KHZ         400U                            // 100 ; 400 ; 1000 ; 1700 ; 3400 ; 5000  -  Above 400 KHz use at own risk
+        #define hkI2C_SPEED_KHZ         1000U                           // 100 ; 400 ; 1000 ; 1700 ; 3400 ; 5000  -  Above 400 KHz use at own risk
         #define hkI2C_SPEED            (hkI2C_SPEED_KHZ * 1000U)        // Conversion from KHz to Hz   
     #else
         #define hkI2C_ONE               i2c0                            // i2c0 or i2c1 ; Default: i2c0
@@ -88,8 +88,15 @@
     #define hkFLASH_W25Q128JV           true                            // 128Mb (16MB) SPI FLASH
 
     // Display
-    #define hkLCD_PCD8544               true                            // Nokia 5110 LCD Display
-    // #define hkOLED_SSD1306           true                            // 1.5" OLED   
+    // #define hkLCD_PCD8544            true                            // Nokia 5110 LCD Display
+    #define hkOLED_SSD1327              true                            // Waveshare 13992 1.5" OLED
+    #if hkOLED_SSD1327
+        #define hkSSD1327_USE_I2C       true                            // true - I2C ; false - 4 Wire SPI
+    #endif
+    #define hkOLED_SH1107               false
+    #if hkOLED_SH1107
+        #define hkSH1107_USE_I2C        true                            // true - I2C ; false - 4 Wire SPI
+    #endif
 
     // Debugging
     #define hkSEGGER_SYSVIEW            true                            // Use SEGGER SysView for debugging
