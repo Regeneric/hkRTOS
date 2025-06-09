@@ -59,11 +59,11 @@ b8 DHT11_Read(DHT_Config_t* config) {
     HTRACE("dht11_dma.c -> DHT11_Read(DHT_Config_t*):b8");
 
     if(config->length < 5) {
-        HERROR("Data buffer is too small!");
+        HERROR("DHT11_Read(): Data buffer is too small!");
         return false;
     }
     if(config->status == DHT_READ_IN_PROGRESS) {
-        HDEBUG("Another read process in progress!");
+        HDEBUG("DHT11_Read(): Another read process in progress!");
         return false;
     }
 

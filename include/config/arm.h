@@ -2,7 +2,7 @@
 #include <defines.h>
 
 #ifdef HPLATFORM_ARM
-    #define HK_LOG_LEVEL                LOG_WARN                       // TRACE | DEBUG | INFO | WARN | ERROR
+    #define HK_LOG_LEVEL                LOG_DEBUG                       // TRACE | DEBUG | INFO | WARN | ERROR
 
     // Communication
     #define hkI2C_USE_SINGLE_I2C        true                            // Use single or both uC I2Cs
@@ -72,10 +72,11 @@
             #define hkDHT_PIO_SM
         #endif
     #endif
-    #define hkBME280_USE_SENSOR         true                           // Decide if we want to use BME280
+    #define hkBME280_USE_SENSOR         true                            // Decide if we want to use BME280
     #if hkBME280_USE_SENSOR
-        #define hkBME280_USE_I2C        true                           // true - i2c ; false - spi
+        #define hkBME280_USE_I2C        true                            // true - i2c ; false - spi
     #endif
+    #define hkDS18B20_USE_DMA           false                           // Decide if we want to use DMA to read from DS18B20
 
     // Storage
     #define hkEEPROM_24LC01B            true                            // 1Kb   (128B) I2C EEPROM

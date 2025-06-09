@@ -48,7 +48,7 @@ b8 DHT11_Read(DHT_Config_t* config) {
     
     u8 checksum = (config->data[0] + config->data[1] + config->data[2] + config->data[3]) & 0xFF; 
     if(checksum != config->data[4]) {
-        HDEBUG("Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x", checksum, config->data[4]);
+        HDEBUG("DHT11_Read(): Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x", checksum, config->data[4]);
         return false;
     } return true;
 }

@@ -41,13 +41,13 @@ b8 DHT11_Read(DHT_Config_t* config) {
 
     // First handshake
     if(!gpio_wait_for_level(config->gpio, GPIO_LOW, 100)) {
-        HDEBUG("First handshake failed"); 
+        HDEBUG("DHT11_Read(): First handshake failed"); 
         return false;
     }
 
     // Second handshake
     if(!gpio_wait_for_level(config->gpio, GPIO_HIGH, 100)) {
-        HDEBUG("Second handshake failed"); 
+        HDEBUG("DHT11_Read(): Second handshake failed"); 
         return false;
     }
 
@@ -59,13 +59,13 @@ b8 DHT11_Read(DHT_Config_t* config) {
 
         // Start bit
         if(!gpio_wait_for_level_count(config->gpio, GPIO_LOW, 70, &timeout)) {
-            HDEBUG("Start bit %u failed: TIMEOUT", bit); 
+            HDEBUG("DHT11_Read(): Start bit %u failed: TIMEOUT", bit); 
             return false;
         }
 
         // Data bit
         if(!gpio_wait_for_level_count(config->gpio, GPIO_HIGH, 90, &timeout)) {
-            HDEBUG("Data bit %u failed: TIMEOUT", bit); 
+            HDEBUG("DHT11_Read(): Data bit %u failed: TIMEOUT", bit); 
             return false;
         }
 
@@ -76,7 +76,7 @@ b8 DHT11_Read(DHT_Config_t* config) {
 
     u8 checksum = (config->data[0] + config->data[1] + config->data[2] + config->data[3]) & 0xFF; 
     if(checksum != config->data[4]) {
-        HDEBUG("Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x", checksum, config->data[4]);
+        HDEBUG("DHT11_Read(): Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x", checksum, config->data[4]);
         return false;
     } return true;
 }

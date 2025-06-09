@@ -16,17 +16,7 @@ endif()
 
 
 pico_generate_pio_header(libonewire
-    ${CMAKE_CURRENT_LIST_DIR}/onewire_reset.pio
-    OUTPUT_DIR ${PROJECT_INC_DIR}/comm/onewire
-)
-
-pico_generate_pio_header(libonewire
-    ${CMAKE_CURRENT_LIST_DIR}/onewire_write.pio
-    OUTPUT_DIR ${PROJECT_INC_DIR}/comm/onewire
-)
-
-pico_generate_pio_header(libonewire
-    ${CMAKE_CURRENT_LIST_DIR}/onewire_read.pio
+    ${CMAKE_CURRENT_LIST_DIR}/onewire.pio
     OUTPUT_DIR ${PROJECT_INC_DIR}/comm/onewire
 )
 

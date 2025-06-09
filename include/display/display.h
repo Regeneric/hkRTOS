@@ -5,10 +5,9 @@
 #include <comm/i2c.h>
 
 typedef struct DisplayConfig_t {
-    u16 width;
-    u16 height;
-    u16 contrast;
-    u16 address;
+    u8 width;
+    u8 height;
+    u8 address;
 } DisplayConfig_t;
 
 b8  Display_Init(I2C_Config_t* i2c, DisplayConfig_t* config);

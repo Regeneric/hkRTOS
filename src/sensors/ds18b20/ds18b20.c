@@ -1,16 +1,45 @@
 #include <stdio.h>
 
+#include <pico/stdlib.h>
+
+#include <core/logger.h>
 #include <sensors/ds18b20/ds18b20.h>
 
-// b8 DS18B20_Address(OneWire_Config_t* ow, DS18B20_Config_t* config) {
 
-// }
+static inline b8 DS18B20_CRC(const u8* data, size_t len) {
+    HTRACE("ds18b20.c -> s:DS18B20_CRC(const u8*, size_t):b8");
+
+    u8 crc = 0;
+    while(len--) {
+        u8 bit = *data++;
+        for(u8 i = 8; i; i--) {
+            u8 sum = (crc ^ bit) & 0x01;
+            crc >>= 1;
+
+            if(sum) crc ^= 0x8C;
+            bit >>= 1;
+        }
+    } return crc == 0;  // If the final CRC is 0, data is valid
+}
+
+static inline b8 DS18B20_Convert(OneWire_Config_t* ow) {
+    HTRACE("ds18b20.c -> s:DS18B20_Convert(OneWire_Config_t*):b8");
+    
+    if(OneWire_Reset(ow) == false) return false;
+    if(OneWire_WriteByte(ow, ONEW_SKIP_ROM) == false) return false;
+    if(OneWire_WriteByte(ow, DS18B20_CONVERT_T) == false) return false;
+
+    while(OneWire_Read(ow) == 0);   // Wait for conversion to end
+    return true;
+}
 
 static inline b8 DS18B20_MatchRead(OneWire_Config_t* ow, DS18B20_Config_t* config) {
+    HTRACE("ds18b20.c: s:DS18B20_MatchRead(OneWire_Config_t*, DS18B20_Config_t*):b8");
+
     if(config->length < 9) return false;
 
     u8 commands[9];
-    commands[0] = DS18B20_MATCH_ROM;
+    commands[0] = ONEW_MATCH_ROM;
 
     for(u8 byte = 0; byte < 8; ++byte) {
         // Unpack address into single bytes, LSB first
@@ -19,38 +48,63 @@ static inline b8 DS18B20_MatchRead(OneWire_Config_t* ow, DS18B20_Config_t* confi
 
     if(OneWire_Reset(ow) == false) return false;
     if(OneWire_Write(ow, commands, sizeof(commands)) == false) {
-        printf("Failed to send commands to the sensor\n");
+        HDEBUG("DS18B20_MatchRead(): Failed to send commands to the sensor");
         return false;
     }
 
     if(OneWire_WriteByte(ow, DS18B20_READ_SCRATCHPAD) == false) {
-        printf("Failed to send commands to the sensor\n");
+        HDEBUG("DS18B20_MatchRead(): Failed to send commands to the sensor");
         return false;
     }
 
-    OneWire_Read(ow, config->data, config->length);
+    // Read all 9 bytes from the sensor into the data buffer.
+    for (u8 i = 0; i < config->length; i++) config->data[i] = OneWire_Read(ow);
     return true;
 }
 
-static inline  b8 DS18B20_SkipRead(OneWire_Config_t* ow, DS18B20_Config_t* config) {
+static inline b8 DS18B20_SkipRead(OneWire_Config_t* ow, DS18B20_Config_t* config) {
+    HTRACE("ds18b20.c: s:DS18B20_SkipRead(OneWire_Config_t*, DS18B20_Config_t*):b8");
+
     if(config->length < 9) return false;
 
     if(OneWire_Reset(ow) == false) return false;
-    if(OneWire_WriteByte(ow, DS18B20_SKIP_ROM) == false) {              
-        printf("Failed to send commands to the sensor\n");
+    if(OneWire_WriteByte(ow, ONEW_SKIP_ROM) == false) {              
+        HDEBUG("DS18B20_SkipRead(): Failed to send commands to the sensor");
         return false;
     }
 
     if(OneWire_WriteByte(ow, DS18B20_READ_SCRATCHPAD) == false) {
-        printf("Failed to send commands to the sensor\n");
+        HDEBUG("DS18B20_SkipRead(): Failed to send commands to the sensor");
         return false;
     }
 
-    OneWire_Read(ow, config->data, config->length);
+    // Read all 9 bytes from the sensor into the data buffer.
+    for (u8 i = 0; i < config->length; i++) config->data[i] = OneWire_Read(ow);
     return true;
 }
 
-b8 DS18B20_Read(OneWire_Config_t* ow, DS18B20_Config_t* config) {
-    if(config->address == DS18B20_SKIP_ROM) return DS18B20_SkipRead(ow, config);
-    else return DS18B20_MatchRead(ow, config);
+u8 DS18B20_Read(OneWire_Config_t* ow, DS18B20_Config_t* config) {
+    HTRACE("ds18b20.c: DS18B20_Read(OneWire_Config_t*, DS18B20_Config_t*):u8");
+
+    if(DS18B20_Convert(ow) == false) {
+        HDEBUG("DS18B20_Read(): Failed to start conversion");
+        return false;
+    }
+
+    u8 result = 0;
+    if(config->address == ONEW_SKIP_ROM) result = DS18B20_SkipRead(ow, config);
+    else result = DS18B20_MatchRead(ow, config);
+
+    if(!DS18B20_CRC(config->data, config->length)) {
+        HWARN("DS18B20_Read(): CRC check failed. Data is corrupted.");
+        return false;
+    }
+
+    if(!result) return result;  // Something went wrong, early return
+
+    i16 rawTemp = (i16)((config->data[1] << 8) | config->data[0]);
+    f32 temp = (f32)rawTemp/16.0f;
+
+    config->temperature = temp;
+    return result;
 }

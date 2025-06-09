@@ -15,6 +15,7 @@ static I2C_Config_t* sgI2C;
 b8 Display_Init(I2C_Config_t* i2c, DisplayConfig_t* config) {
     HTRACE("ssd1327.c -> Display_Init(I2C_Config_t*, SSH1107_Config_t*):b8");
     
+    // TODO: reset function
     gpio_init(10);
     gpio_set_dir(10, GPIO_OUT);
     gpio_put(10, GPIO_HIGH);
@@ -42,7 +43,26 @@ b8 Display_Init(I2C_Config_t* i2c, DisplayConfig_t* config) {
         // SSD1327_SET_NORMAL_DISPLAY,             // Corresponds to SET_DISP_MODE
         // 0x2E                                    // SET_SCROLL_DEACTIVATE
 
+        SSD1327_SET_CLOCK_DIV,          0xF1,   // Set Clock Divider / Oscillator Frequency
+        SSD1327_SET_MUX_RATIO,          0x7F,   // Set MUX Ratio for 128 rows
+        SSD1327_SET_START_LINE,         0x00,   // Set Display Start Line to 0
+        SSD1327_SET_DISPLAY_OFFSET,     0x00,   // Set Display Offset to 0
+        SSD1327_SET_REMAP,              0x74,   // Set Remap & Color Depth (Adafruit's value)
+        SSD1327_SET_FUNC_SELECT_A,      0x01,   // Enable internal VDD regulator
+        SSD1327_SET_PHASE_LENGTH,       0x32,   // Set Phase Length
+        SSD1327_SET_SECOND_PRECHARGE,   0x0D,   // Set Second Pre-charge Period
+        SSD1327_SET_PRECHARGE,          0x0D,   // Set Pre-charge Voltage
+        SSD1327_SET_VCOMH,              0x0B,   // Set VCOMH Level
+        SSD1327_SET_MASTER_CONTRAST,    0x99,   // Set Master Contrast
+        SSD1327_SET_MASTER_CURRENT,     0x0F,   // Set Master Current Control
         
+        // Set the Linear Grayscale Table (1 command byte + 15 data bytes)
+        SSD1327_SET_GRAYSCALE_TABLE,
+        0x0C, 0x18, 0x24, 0x30, 0x3C, 0x48, 0x54, 0x60,
+        0x6C, 0x78, 0x84, 0x90, 0x9C, 0xA8, 0xB4,
+
+        // Set Display Mode to Normal
+        SSD1327_SET_NORMAL_DISPLAY
     }; 
     
     Display_WriteCommandList(initCommands, sizeof(initCommands));
