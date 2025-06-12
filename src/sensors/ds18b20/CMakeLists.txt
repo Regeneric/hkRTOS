@@ -1,6 +1,7 @@
 add_library(libds18b20
     STATIC
         ds18b20.c
+        ds18b20_dma.c
 )
 
 
@@ -30,4 +31,5 @@ target_link_libraries(libds18b20
 
         hardware_gpio
         hardware_i2c
+        hardware_dma
 )

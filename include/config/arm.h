@@ -42,15 +42,30 @@
         #define hkWIFI_SSID
         #define hkWIFI_PASS
     #endif
-    #define hkENABLE_ONEWIRE            true                            //  Enable 1-Wire communication
+    #define hkENABLE_ONEWIRE            true                            // Enable 1-Wire communication
     #if hkENABLE_ONEWIRE
-        #define hkOW_PIO                pio1                            //  Which PIO
-        #define hkOW_PIO_SM             0                               //  Starting SM on that PIO; we need 3 in total
-        #define hkOW_PIN                13                              //  Data pin for the 1-Wire interface
+        #define hkOW_PIO                pio1                            // Which PIO
+        #define hkOW_PIO_SM             0                               // Starting SM on that PIO; we need 3 in total
+        #define hkOW_PIN                13                              // Data pin for the 1-Wire interface
+        #define hkOW_USE_DMA            false                           // Decide if we want to use DMA for data collection or CPU
+        #if hkOW_USE_DMA            
+            #define hkOW_DMA_IRQ        DMA_IRQ_1                       // Which DMA IRQ to use
+        #else
+            #define hkOW_DMA_IRQ                        
+        #endif
     #else
         #define hkOW_PIO
         #define hkOW_PIO_SM
         #define hkOW_PIN
+    #endif
+    #define hkENABLE_UART               true                            // Enable UART communication
+    #if hkENABLE_UART
+        #define hkUART                  uart1                           // uart0 or uart1 ; Default: uart0
+        #define hkUART_TX               8                               // TX GPIO PIN
+        #define hkUART_RX               9                               // RX GPIO PIN
+        #define hkUART_BAUDRATE         9600                            // Bps
+    #else
+
     #endif
 
     // Sensors
@@ -76,7 +91,6 @@
     #if hkBME280_USE_SENSOR
         #define hkBME280_USE_I2C        true                            // true - i2c ; false - spi
     #endif
-    #define hkDS18B20_USE_DMA           false                           // Decide if we want to use DMA to read from DS18B20
 
     // Storage
     #define hkEEPROM_24LC01B            true                            // 1Kb   (128B) I2C EEPROM

@@ -22,6 +22,7 @@
 #include <core/logger.h>
 
 #include <comm/i2c.h>
+#include <comm/uart.h>
 #include <comm/network/wifi.h>
 #include <comm/onewire/onewire.h>
 
@@ -31,133 +32,141 @@
 #include <sensors/sensors.h>
 #include <sensors/dht11/dht11.h>
 #include <sensors/ds18b20/ds18b20.h>
+#include <sensors/pms5003/pms5003.h>
 
 #include <display/display.h>
 #include <display/gfx/gfx.h>
 #include <display/ssd1327/ssd1327_config.h>
 
 static DHT_Config_t hkDHT11;
+static UART_Config_t uart;
+static PMS5003_Config_t hkPMS5003;
 
-static bool DHT11_Timer_ISR(struct repeating_timer *t) {
+static bool DHT11_Timer_ISR(struct repeating_timer* t) {
     DHT11_Read(&hkDHT11);
     return true;
 }
 
-// struct repeating_timer timer;
-// add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &timer);
-
-
-
-// #include <stdio.h>
-// #include "pico/stdlib.h"
-// #include "hardware/pio.h"
-// #include "hardware/clocks.h"
-
-// // <<< REPLACE THE OLD ARRAY WITH THIS CORRECTED ONE >>>
-// static const uint16_t onewire_write_program_instructions[] = {
-//     // This PIO program has corrected timings for a 1MHz clock (1 cycle = 1us)
-//     0x80a0, //  0: pull   block
-//     0xe047, //  1: set    y, 7
-//     0x6021, //  2: out    x, 1
-//     0x0027, //  3: jmp    !x, 7
-//     // --- Send a '1' bit ---
-//     0xe581, //  4: set    pindirs, 1             [5]  ; Drive LOW for 6us
-//     0xfb80, //  5: set    pindirs, 0             [27] ; Release HIGH and wait for 28us
-//     0xa042, //  6: nop                           [32-28-1=3] -> wait for another ~30us
-//             // Total slot time for '1' is ~6us (LOW) + ~59us (HIGH) = ~65us. CORRECT.
-    
-//     // --- Send a '0' bit ---
-//     0xff81, //  7: set    pindirs, 1             [31] ; Drive LOW for 32us
-//     0xa942, //  8: nop                           [9] ; Drive LOW for another 28us. Total LOW time = 60us. CORRECT.
-//     0xe480, //  9: set    pindirs, 0             [4]  ; Release HIGH for 5us recovery time.
-    
-//     // --- Loop ---
-//     0x0082, // 10: jmp    y--, 2
-// };
-
-// static const struct pio_program onewire_write_program = {
-//     .instructions = onewire_write_program_instructions,
-//     .length = 11, // UPDATE LENGTH
-//     .origin = -1,
-// };
-
-// // The pin for 1-Wire communication
-// #define ONEWIRE_PIN 13 // <<< SET THIS TO YOUR ACTUAL GPIO PIN NUMBER
-
-// int main() {
-//     stdio_init_all();
-//     sleep_ms(2000); // Wait for terminal to connect
-//     printf("Starting minimal PIO 1-Wire test...\n");
-
-//     // 1. Setup PIO
-//     PIO pio = pio0;
-//     uint offset = pio_add_program(pio, &onewire_write_program);
-//     uint sm = pio_claim_unused_sm(pio, true);
-
-//     // 2. Configure the State Machine
-//     pio_sm_config c = pio_get_default_sm_config();
-//     sm_config_set_wrap(&c, offset, offset + 10);
-//     sm_config_set_clkdiv(&c, (float)clock_get_hz(clk_sys) / 1000000.0f); // 1MHz clock
-//     sm_config_set_out_shift(&c, true, false, 8); // Shift RIGHT (LSB first), NO autopull
-//     sm_config_set_out_pins(&c, ONEWIRE_PIN, 1);
-//     sm_config_set_set_pins(&c, ONEWIRE_PIN, 1);
-    
-//     pio_gpio_init(pio, ONEWIRE_PIN); // Initialize the pin for PIO control ONCE
-//     pio_sm_set_consecutive_pindirs(pio, sm, ONEWIRE_PIN, 1, true); // Set initial direction to OUT
-    
-//     pio_sm_init(pio, sm, offset, &c);
-//     pio_sm_set_enabled(pio, sm, true); // Enable the SM and leave it running
-
-//     // 3. Main Test Loop
-//     while (true) {
-//         printf("Sending 0x02...\n");
-//         pio_sm_put_blocking(pio, sm, 0x02);
-//         sleep_ms(1000); // Wait long enough to see the result clearly
-
-//         printf("Sending 0xCC...\n");
-//         pio_sm_put_blocking(pio, sm, 0xCC);
-//         sleep_ms(1000);
-//     }
-// }
-
-
+static bool PMS5003_Timer_ISR(struct repeating_timer* t) {
+    PMS5003_Read(&uart, &hkPMS5003);
+    return true;
+}
 
 
 void main(void) {
     stdio_init_all();
 
-    // I2C_Config_t i2c = {
-    //     .i2c   = hkI2C,
-    //     .scl   = hkI2C_SCL,
-    //     .sda   = hkI2C_SDA,
-    //     .speed = hkI2C_SPEED
-    // }; I2C_Init(&i2c);
+    I2C_Config_t i2c = {
+        .i2c   = hkI2C,
+        .scl   = hkI2C_SCL,
+        .sda   = hkI2C_SDA,
+        .speed = hkI2C_SPEED
+    }; I2C_Init(&i2c);
 
-    // DisplayConfig_t hkSH1107 = {
-    //     .width    = 128,
-    //     .height   = 128,
-    //     .address  = SSD1327_ADDRESS
-    // }; Display_Init(&i2c, &hkSH1107);
+    DisplayConfig_t hkSSD1327 = {
+        .width    = 128,
+        .height   = 128,
+        .address  = SSD1327_ADDRESS
+    }; // Display_Init(&i2c, &hkSSD1327);
+
+
+    // static UART_Config_t uart;
+    static u8 hkUART_RawData[32];
+    uart.uart     = hkUART;
+    uart.tx       = hkUART_TX;
+    uart.rx       = hkUART_RX;
+    uart.baudrate = hkUART_BAUDRATE;
+    uart.data     = hkUART_RawData;
+    uart.length   = sizeof(hkUART_RawData);
+    uart.status   = UART_INIT;
+    uart.packetSize = 32;   // How many bytes will be read from a single transmission
+    UART_Init(&uart);
+
+    // static PMS5003_Config_t hkPMS5003;
+    static u8 hkPMS5003_RawData[32];
+    hkPMS5003.pm1    = 0;
+    hkPMS5003.pm2_5  = 0;
+    hkPMS5003.pm10   = 0;
+    hkPMS5003.rawData = hkPMS5003_RawData;
+    hkPMS5003.length  = sizeof(hkPMS5003_RawData);
+
+    PMS5003_DataPacket_t hkPMS5003_Data = {
+        .pm1   = 0,
+        .pm2_5 = 0,
+        .pm10  = 0,
+        .jsonify = PMS5003_Jsonify
+    };
+
 
     OneWire_Config_t ow0 = {
-        .gpio   = hkOW_PIN,
-        .pio    = hkOW_PIO,
-        .sm     = hkOW_PIO_SM,
-        .status = ONEW_INIT
+        .gpio    = hkOW_PIN,
+        .pio     = hkOW_PIO,
+        .sm      = hkOW_PIO_SM,
+        .status  = ONEW_INIT,
+        .bitMode = 8
     }; OneWire_Init(&ow0);
 
-    static u8 hkDS18B20_Data[9];
+    static u8 hkDS18B20_RawData[9];
     DS18B20_Config_t hkDS18B20 = {
+        // .address     = 0x2836C7BE000000B6
         .address     = ONEW_SKIP_ROM,
-        .data        = hkDS18B20_Data,
-        .length      = sizeof(hkDS18B20_Data),
+        .data        = hkDS18B20_RawData,
+        .length      = sizeof(hkDS18B20_RawData),
         .queue       = NULL,
         .temperature = 0.0f
     }; 
+
+    DS18B20_DataPacket_t hkDS18B20_Data = {
+        .temperature = 0.0f,
+        .address = 0,
+        .jsonify = DS18B20_Jsonify
+    };
+
+
+    // static DHT_Config_t hkDHT11;
+    static u8 hkDHT_RawData[5];
+    hkDHT11.gpio   = hkDHT_PIN;
+    hkDHT11.pio    = hkDHT_PIO;
+    hkDHT11.sm     = hkDHT_PIO_SM;
+    hkDHT11.queue  = NULL;
+    hkDHT11.status = DHT_INIT;
+    hkDHT11.data   = hkDHT_RawData;
+    hkDHT11.length = sizeof(hkDHT_RawData);
+    DHT11_Init(&hkDHT11);
+
+    DHT_DataPacket_t hkDHT11_Data = {
+        .humidity    = 0.0f,
+        .temperature = 0.0f,
+        .jsonify = DHT11_Jsonify
+    };
+
+
+    struct repeating_timer hkDHT11_Timer;
+    struct repeating_timer hkPMS5003_Timer;
+
+    add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &hkDHT11_Timer);
+    add_repeating_timer_ms(-2300, PMS5003_Timer_ISR, NULL, &hkPMS5003_Timer);
+
     
     while(FOREVER) {
         DS18B20_Read(&ow0, &hkDS18B20);
-        HDEBUG("TEMP: %.2f *C", hkDS18B20.temperature);
+        HDEBUG("[DS18B20] TEMP: %.2f*C", hkDS18B20.temperature);
+        char* hkDS18B20_Json = hkDS18B20_Data.jsonify(&hkDS18B20_Data);
+
+        if(hkDHT11.status == DHT_READ_SUCCESS) {
+            DHT11_ProcessData(&hkDHT11, &hkDHT11_Data);
+            HDEBUG("[DHT11] TEMP: %.2f*C", hkDHT11_Data.temperature);
+            HDEBUG("[DHT11] HUMI: %.2f%%", hkDHT11_Data.humidity);
+            char* hkDHT11_Json = hkDHT11_Data.jsonify(&hkDHT11_Data);
+        }
+
+        if(uart.status == UART_DATA_RX_SUCCESS) {
+            PMS5003_ProcessData(&uart, &hkPMS5003);
+            HDEBUG("[PM 1  ]: %u ug/m3"  , hkPMS5003.pm1);
+            HDEBUG("[PM 2.5]: %u ug/m3"  , hkPMS5003.pm2_5);
+            HDEBUG("[PM 10 ]: %u ug/m3\n", hkPMS5003.pm10);
+            char* hkPMS5003_Json = hkPMS5003_Data.jsonify(&hkPMS5003_Data);
+        }
 
         sleep_ms(1000);
     }

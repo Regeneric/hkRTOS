@@ -51,6 +51,7 @@
         "display.h": "c",
         "font_5_7.h": "c",
         "ssd1327_config.h": "c",
-        "functional": "c"
+        "functional": "c",
+        "pms5003.h": "c"
     }
 }

@@ -4,6 +4,7 @@ add_subdirectory(network)
 add_library(libcomm 
     STATIC
         i2c.c
+        uart_dma.c
 )
 
 
@@ -36,6 +37,7 @@ target_link_libraries(libcomm
         hardware_gpio
         hardware_pio
         hardware_i2c 
-
-        FreeRTOS-Kernel
+        hardware_uart
+        hardware_dma
+        hardware_irq
 )

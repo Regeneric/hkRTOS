@@ -3,6 +3,7 @@ add_library(libsensors INTERFACE)
 add_subdirectory(dht11)
 add_subdirectory(ds18b20)
 add_subdirectory(bme280)
+add_subdirectory(pms5003)
 
 if(BUILD_FOR_ARM)
     add_compile_definitions(HPLATFORM_ARM)
@@ -18,5 +19,6 @@ target_link_libraries(libsensors
     INTERFACE
         libdht11
         libds18b20
+        libpms5003
         # libbme280
 )

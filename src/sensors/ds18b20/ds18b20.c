@@ -1,3 +1,6 @@
+#include <config/arm.h>
+#if !hkOW_USE_DMA
+
 #include <stdio.h>
 
 #include <pico/stdlib.h>
@@ -22,11 +25,24 @@ static inline b8 DS18B20_CRC(const u8* data, size_t len) {
     } return crc == 0;  // If the final CRC is 0, data is valid
 }
 
-static inline b8 DS18B20_Convert(OneWire_Config_t* ow) {
+static inline b8 DS18B20_Convert(OneWire_Config_t* ow, u64 address) {
     HTRACE("ds18b20.c -> s:DS18B20_Convert(OneWire_Config_t*):b8");
     
     if(OneWire_Reset(ow) == false) return false;
-    if(OneWire_WriteByte(ow, ONEW_SKIP_ROM) == false) return false;
+
+    if(address == ONEW_SKIP_ROM) {
+        if(OneWire_WriteByte(ow, ONEW_SKIP_ROM) == false) return false;
+    } else {
+        u8 commands[2];
+        commands[0] = ONEW_MATCH_ROM;
+        commands[1] = address;
+
+        // Not implemented, yet
+        HERROR("DS18B20_Convert(): MATCH_ROM is not implemented, yet");
+        return false;
+        
+        if(OneWire_Write(ow, commands, sizeof(commands)) == false) return false;
+    }
     if(OneWire_WriteByte(ow, DS18B20_CONVERT_T) == false) return false;
 
     while(OneWire_Read(ow) == 0);   // Wait for conversion to end
@@ -38,13 +54,13 @@ static inline b8 DS18B20_MatchRead(OneWire_Config_t* ow, DS18B20_Config_t* confi
 
     if(config->length < 9) return false;
 
-    u8 commands[9];
+    u8 commands[2];
     commands[0] = ONEW_MATCH_ROM;
+    commands[1] = config->address;
 
-    for(u8 byte = 0; byte < 8; ++byte) {
-        // Unpack address into single bytes, LSB first
-        commands[byte+1] = (config->address >> (byte*8)) & 0xFF;
-    }
+    // Not implemented, yet
+    HERROR("DS18B20_Convert(): MATCH_ROM is not implemented, yet");
+    return false;
 
     if(OneWire_Reset(ow) == false) return false;
     if(OneWire_Write(ow, commands, sizeof(commands)) == false) {
@@ -86,7 +102,7 @@ static inline b8 DS18B20_SkipRead(OneWire_Config_t* ow, DS18B20_Config_t* config
 u8 DS18B20_Read(OneWire_Config_t* ow, DS18B20_Config_t* config) {
     HTRACE("ds18b20.c: DS18B20_Read(OneWire_Config_t*, DS18B20_Config_t*):u8");
 
-    if(DS18B20_Convert(ow) == false) {
+    if(DS18B20_Convert(ow, config->address) == false) {
         HDEBUG("DS18B20_Read(): Failed to start conversion");
         return false;
     }
@@ -108,3 +124,5 @@ u8 DS18B20_Read(OneWire_Config_t* ow, DS18B20_Config_t* config) {
     config->temperature = temp;
     return result;
 }
+
+#endif

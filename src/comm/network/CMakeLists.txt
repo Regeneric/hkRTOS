@@ -31,7 +31,4 @@ target_link_libraries(libnetwork
 
         hardware_gpio
         hardware_pio
-        hardware_i2c 
-
-        FreeRTOS-Kernel
 )

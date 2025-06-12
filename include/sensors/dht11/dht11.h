@@ -75,7 +75,7 @@ static char* DHT11_Jsonify(const void* self) {
     static char buffer[hkDHT_JSON_BUFFER];
     u32 requiredLength = snprintf(buffer, sizeof(buffer), json, data->temperature, data->humidity);
     if(requiredLength > sizeof(buffer)) {
-        printf("[DHT] Buffer size is to small to send this data packet!\n");
+        HERROR("[DHT] Buffer size is to small to send this data packet!\n");
         return NULL;
     }
 

@@ -15,18 +15,39 @@ typedef enum {
     ONEW_READ_SUCCESS,
     ONEW_READ_IN_PROGRESS,
     ONEW_WRITE_SUCCESS,
-    ONEW_WRITE_IN_PROGRESS
+    ONEW_WRITE_IN_PROGRESS,
+    ONEW_DMA_IN_PROGRESS,
+    ONEW_DMA_SUCCESS
 } OneWire_Status_t;
 
-typedef struct OneWire_Config_t {
-    u8     gpio;
-    vu8    status;
-    PIO    pio;
-    u8     sm;
-} OneWire_Config_t;
+#if hkOW_USE_DMA
+    typedef struct OneWire_Config_t {
+        u8  gpio;
+        vu8 status;
+        PIO pio;
+        u8  sm;
+        u8  bitMode;
+        u8* data;
+        size_t length;
+    } OneWire_Config_t;
 
-void OneWire_Init(OneWire_Config_t* config);
-b8   OneWire_Reset(OneWire_Config_t* config);
-u8   OneWire_Read(OneWire_Config_t* config);
-b8   OneWire_WriteByte(OneWire_Config_t* config, u32 data);
-b8   OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length);
+    void OneWire_Init(OneWire_Config_t* config);
+    b8   OneWire_Reset(OneWire_Config_t* config);
+    u8   OneWire_Read(OneWire_Config_t* config, u8* buffer, size_t length);
+    b8   OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length);
+#else
+    typedef struct OneWire_Config_t {
+        u8  gpio;
+        vu8 status;
+        PIO pio;
+        u8  sm;
+        u8  bitMode;
+    } OneWire_Config_t;
+
+    void OneWire_Init(OneWire_Config_t* config);
+    b8   OneWire_Reset(OneWire_Config_t* config);
+    u8   OneWire_Read(OneWire_Config_t* config);
+    b8   OneWire_WriteByte(OneWire_Config_t* config, u32 data);
+    b8   OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length);
+    u8   OneWire_SearchROM(OneWire_Config_t* config, u64* devices, u8 maxDevices, u8 command);
+#endif

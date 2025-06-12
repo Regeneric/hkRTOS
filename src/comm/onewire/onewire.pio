@@ -32,44 +32,34 @@ loop_d: jmp x-- loop_d  side 1  [15]    ;                                   3 x 
 
 
 % c-sdk {
-static inline void onewire_sm_init (PIO pio, uint sm, uint offset, uint pin_num, uint bits_per_word) {
-
-    // create a new state machine configuration
+static inline void onewire_sm_init (PIO pio, uint sm, uint offset, uint pin_num, uint bitsPerWord) {
     pio_sm_config c = onewire_program_get_default_config(offset);
 
-    // Input Shift Register configuration settings
     sm_config_set_in_shift (
         &c,
         true,           // shift direction: right
         true,           // autopush: enabled
-        bits_per_word   // autopush threshold
+        bitsPerWord     // autopush threshold
     );
 
-    // Output Shift Register configuration settings
     sm_config_set_out_shift (
         &c,
         true,           // shift direction: right
         true,           // autopull: enabled
-        bits_per_word   // autopull threshold
+        bitsPerWord     // autopull threshold
     );
 
-    // configure the input and sideset pin groups to start at `pin_num`
     sm_config_set_in_pins (&c, pin_num);
     sm_config_set_sideset_pins (&c, pin_num);
 
-    // configure the clock divider for 1 usec per instruction
     float div = clock_get_hz (clk_sys) * 1e-6;
     sm_config_set_clkdiv (&c, div);
 
-    // apply the configuration and initialise the program counter
     pio_sm_init (pio, sm, offset + onewire_offset_fetch_bit, &c);
-
-    // enable the state machine
     pio_sm_set_enabled (pio, sm, true);
 }
 
 static inline uint onewire_reset_instr (uint offset) {
-    // encode a "jmp reset_bus side 0" instruction for the state machine
     return pio_encode_jmp (offset + onewire_offset_reset_bus) | pio_encode_sideset (1, 0);
 }
 %}

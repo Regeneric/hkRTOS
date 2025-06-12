@@ -1,6 +1,8 @@
 add_library(libonewire 
     STATIC
         onewire.c
+        onewire_dma.c
+        onewire.pio
 )
 
 
@@ -32,7 +34,5 @@ target_link_libraries(libonewire
 
         hardware_gpio
         hardware_pio
-        hardware_i2c 
-
-        FreeRTOS-Kernel
+        hardware_dma
 )
