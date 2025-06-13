@@ -19,6 +19,7 @@
 // hkRTOS
 #include <defines.h>
 
+#include <core/map.h>
 #include <core/logger.h>
 
 #include <comm/i2c.h>
@@ -67,7 +68,8 @@ void main(void) {
         .width    = 128,
         .height   = 128,
         .address  = SSD1327_ADDRESS,
-        .textSize = 1
+        .textSize = 1,
+        .status   = DISP_DRAW
     }; Display_Init(&i2c, &hkSSD1327);
 
 
@@ -141,12 +143,54 @@ void main(void) {
 
     struct repeating_timer hkDHT11_Timer;
     struct repeating_timer hkPMS5003_Timer;
+    struct repeating_timer hkSSD1327_Timer;
 
     add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &hkDHT11_Timer);
     add_repeating_timer_ms(-2300, PMS5003_Timer_ISR, NULL, &hkPMS5003_Timer);
+    // add_repeating_timer_ms(-10000, SSD1327_Timer_ISR, NULL, &hkSSD1327_Timer);
 
-    hkDrawTestPattern();    // Display test pattern
+    // hkDrawTestPattern();    // Display test pattern
+    char buffer[64];
     
+    hkClearBuffer();
+
+    static u8 DS18B20_GraphHistory[MAX_GRAPH_WIDTH];
+    GraphConfig_t DS18B20_Graph = {
+        .x = 5,         // Start X point
+        .width = 118,   // End X point
+        .y = 10,         // Start Y point
+        .height = 50,   // End Y point  
+        .minVal = 10.0,
+        .maxVal = 50.0,
+        .colour = 15,
+        .borderColour = 15,
+        .legendColour = 4,
+        .cursorX = 0,
+        .history = DS18B20_GraphHistory,
+        .length  = sizeof(DS18B20_GraphHistory)
+    }; hkGraphInit(&DS18B20_Graph);
+
+    static u8 PMS5003_2_5_GraphHistory[MAX_GRAPH_WIDTH];
+    GraphConfig_t PMS5003_PM2_5_Graph = {
+        .x = 5,         // Start X point
+        .width = 118,   // End X point
+        .y = 73,        // Start Y point
+        .height = 50,   // End Y point   
+        .minVal = 0.0,
+        .maxVal = 150.0,
+        .colour = 10,
+        .borderColour = 10,
+        .legendColour = 4,
+        .cursorX = 0,
+        .history = PMS5003_2_5_GraphHistory,
+        .length  = sizeof(PMS5003_2_5_GraphHistory)
+    }; hkGraphInit(&PMS5003_PM2_5_Graph);
+
+    hkClearBuffer();
+    hkGraphDrawAxes(&DS18B20_Graph);
+    hkGraphDrawAxes(&PMS5003_PM2_5_Graph);
+    hkDisplay();
+
     while(FOREVER) {
         DS18B20_ReadAndProcess(&ow0, &hkDS18B20, &hkDS18B20_Data);
         HDEBUG("[DS18B20] TEMP: %.2f*C", hkDS18B20_Data.temperature);
@@ -165,6 +209,46 @@ void main(void) {
             HDEBUG("[PMS5003] PM 2.5: %u ug/m3"  , hkPMS5003_Data.pm2_5);
             HDEBUG("[PMS5003] PM  10: %u ug/m3\n", hkPMS5003_Data.pm10);
             char* hkPMS5003_Json = hkPMS5003_Data.jsonify(&hkPMS5003_Data);
+        }
+
+        if(hkSSD1327.status == DISP_DRAW) {
+            // hkDrawGraph(hkDS18B20_Data.temperature);
+            hkGraphAddDataPoint(&DS18B20_Graph, hkDS18B20_Data.temperature);
+            hkGraphAddDataPoint(&PMS5003_PM2_5_Graph, (f32)hkPMS5003_Data.pm2_5);
+            
+            hkClearBuffer();
+            hkGraphDrawAxes(&DS18B20_Graph);
+            hkGraphDrawLegend(&DS18B20_Graph, "TEMP (C)");
+
+            hkGraphDrawAxes(&PMS5003_PM2_5_Graph);
+            hkGraphDrawLegend(&PMS5003_PM2_5_Graph, "PM2.5");
+
+            hkGraphDraw(&DS18B20_Graph);
+            hkGraphDraw(&PMS5003_PM2_5_Graph);
+
+            hkDisplay();
+
+            // hkClearBuffer();
+
+            // snprintf(buffer, sizeof(buffer), "IT: %.2f *C", hkDHT11_Data.temperature);
+            // hkDrawFastString(2, 2, buffer);
+
+            // snprintf(buffer, sizeof(buffer), "OT: %.2f *C", hkDS18B20_Data.temperature);
+            // hkDrawFastString(2, 12, buffer);
+
+            // snprintf(buffer, sizeof(buffer), "H : %.0f %%", hkDHT11_Data.humidity);
+            // hkDrawFastString(2, 22, buffer);
+
+            // snprintf(buffer, sizeof(buffer), "PM 1  : %u ug/m3", hkPMS5003_Data.pm1);
+            // hkDrawFastString(2, 42, buffer);
+
+            // snprintf(buffer, sizeof(buffer), "PM 2.5: %u ug/m3", hkPMS5003_Data.pm2_5);
+            // hkDrawFastString(2, 52, buffer);
+
+            // snprintf(buffer, sizeof(buffer), "PM 10 : %u ug/m3", hkPMS5003_Data.pm10);
+            // hkDrawFastString(2, 62, buffer);
+            
+            // hkDisplay();
         }
 
         sleep_ms(1000);

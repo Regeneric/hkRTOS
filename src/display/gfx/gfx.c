@@ -1,3 +1,9 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <core/map.h>
+
 #include <display/display.h>
 #include <display/gfx/gfx.h>
 
@@ -13,3 +19,122 @@ void hkDrawFastChar(u8 x, u8 y, u8 c) {GFX_DrawChar(x, y, c, 0x0F, 1);}
 void hkDrawChar(u8 x, u8 y, u8 c, u8 color, u8 size) {GFX_DrawChar(x, y, c, color, size);}
 void hkDrawFastString(u8 x, u8 y, const char* str) {GFX_DrawString(x, y, str, 0x0F, 1);}
 void hkDrawString(u8 x, u8 y, const char* str, u8 color, u8 size) {GFX_DrawString(x, y, str, color, size);}
+
+void hkDrawTestPattern() {
+    HINFO("Drawing GFX test pattern...");
+    hkClearBuffer();
+
+    // 1. Bounding Box - tests drawing at the screen edges
+    // We use 127 because coordinates are 0-127.
+    hkDrawRect(0, 0, 127, 127, 0x0F);
+    sleep_ms(250); // Small delay to see drawing happen in stages
+    hkDisplay();
+
+    // 2. Diagonal Lines - test for the hkDrawLine algorithm
+    hkDrawLine(0, 0, 127, 127, 0x0F);
+    hkDrawLine(0, 127, 127, 0, 0x0F);
+    sleep_ms(250);
+    hkDisplay();
+
+    // 3. Text - tests both hkDrawChar and hkDrawString
+    hkDrawFastString(20, 5, "SSD1327 gfx OK!");
+    hkDrawFastString(30, 15, "0123456789");
+
+    // Test some individual characters
+    hkDrawFastChar(40, 30, '#');
+    hkDrawFastChar(50, 30, '$');
+    hkDrawFastChar(60, 30, '%');
+    hkDrawFastChar(70, 30, '&');
+    hkDrawFastChar(80, 30, '*');
+    sleep_ms(250);
+    hkDisplay();
+
+    // 4. Shapes - tests rectangles, fill, and alignment
+    hkFillRect(8, 45, 50, 25, 0x0F);   // Draw a solid rectangle
+    hkDrawRect(6, 43, 54, 29, 0x0F);   // Draw an outline around it
+    sleep_ms(250);
+    hkDisplay();
+
+    // 5. Fast Lines - tests the optimized horizontal and vertical line functions
+    hkDrawFastVLine(100, 45, 30, 0x0F);
+    hkDrawFastHLine(80, 80, 40, 0x0F);
+    sleep_ms(250);
+    hkDisplay();
+
+    // 6. Font scalling and grayscale
+    hkDrawChar(32, 117, 'A', 0x01, 1);
+    hkDrawChar(40, 110, 'B', 0x06, 2);
+    hkDrawChar(53, 103, 'C', 0x0F, 3);
+    sleep_ms(250);
+    hkDisplay();
+
+    sleep_ms(5000);
+    hkClearBuffer();
+    hkDisplay();
+}
+
+void hkScreenSaver(u8 width, u8 height) {
+    hkClearBuffer();
+
+    static u8 rectX = 10;
+    static u8 rectY = 10;
+    static u8 speedX = 1;
+    static u8 speedY = 1;
+
+    rectX += speedX;
+    rectY += speedY;
+
+    if(rectX <= 0 || rectX >= (width - 10)) {
+        speedX *= -1;
+    }
+
+    if(rectY <= 0 || rectY >= (height - 10)) {
+        speedY *= -1;
+    }
+
+    hkFillRect(rectX, rectY, 10, 10, 15);
+    hkDisplay();
+}
+
+
+void hkGraphInit(GraphConfig_t* config) {memset(config->history, 0, config->length);}
+void hkGraphDrawAxes(const GraphConfig_t* config) {hkDrawRect(config->x-1, config->y-1, config->width+2, config->height+2, config->borderColour);}
+void hkGraphAddDataPoint(GraphConfig_t* config, f32 data) {
+    i32 nextY = map((i32)(data * 10), (i32)(config->minVal * 10), (i32)(config->maxVal * 10), (i32)(config->y + config->height), (i32)config->y);
+
+    if(nextY < config->y) nextY = config->y;
+    if(nextY > config->y + config->height) nextY = (config->y + config->height);
+
+    config->history[config->cursorX] = nextY;
+    config->cursorX++;
+
+    if(config->cursorX >= config->width) {config->cursorX = 0;}
+}
+
+void hkGraphDraw(const GraphConfig_t* config) {
+    for(u16 i = 1; i < config->cursorX; i++) {
+        i32 prevY = config->history[i-1];
+        i32 nextY = config->history[i];
+        
+        if(prevY < config->y) prevY = config->y;
+        if(prevY > config->y + config->height) prevY = config->y + config->height;
+        
+        if(nextY < config->y) nextY = config->y;
+        if(nextY > config->y + config->height) nextY = config->y + config->height;
+
+        hkDrawLine((config->x + i - 1), prevY, (config->x + i), nextY, config->colour);
+    }
+}
+
+void hkGraphDrawLegend(const GraphConfig_t* config, const char* title) {
+    char label[16];
+
+    u8 titleX = config->x + (config->width/2) - (strlen(title) * 6 / 2);
+    hkDrawString(titleX, (config->y - 10), title, config->borderColour, 1);
+
+    snprintf(label, sizeof(label), "%.0f", config->maxVal);
+    hkDrawString(6, (config->y + 1), label, config->legendColour, 1);
+
+    snprintf(label, sizeof(label), "%.0f", config->minVal);
+    hkDrawString(6, (config->y + config->height - 8), label, config->legendColour, 1);
+}

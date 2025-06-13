@@ -4,11 +4,17 @@
 #include <core/logger.h>
 #include <comm/i2c.h>
 
+enum {
+    DISP_DRAW,
+    DISP_SLEEP,
+};
+
 typedef struct DisplayConfig_t {
     u8 width;
     u8 height;
     u8 address;
     u8 textSize;
+    vu8 status;
 } DisplayConfig_t;
 
 b8  Display_Init(I2C_Config_t* i2c, DisplayConfig_t* config);

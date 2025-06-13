@@ -1,6 +1,25 @@
 #pragma once
 #include <defines.h>
 
+#define GRAPH_X_POS     5
+#define GRAPH_Y_POS     30
+#define GRAPH_WIDTH     118
+#define GRAPH_HEIGHT    90
+
+#define MAX_GRAPH_WIDTH 128
+typedef struct GraphConfig_t {
+    u8  x, y;
+    u8  width, height;
+    f32 minVal;
+    f32 maxVal;
+    u8  colour;
+    u8  borderColour;
+    u8  legendColour;
+    u8* history;
+    u8  length;
+    u8  cursorX;
+} GraphConfig_t;
+
 void hkClearBuffer(void);
 void hkDisplay(void);
 void hkDrawPixel(u8 x, u8 y, u8 color);
@@ -14,55 +33,11 @@ void hkDrawChar(u8 x, u8 y, u8 c, u8 color, u8 size);
 void hkDrawFastString(u8 x, u8 y, const char* str);
 void hkDrawString(u8 x, u8 y, const char* str, u8 color, u8 size);
 
-static void hkDrawTestPattern() {
-    HINFO("Drawing GFX test pattern...");
-    hkClearBuffer();
+void hkDrawTestPattern();
+void hkScreenSaver(u8 width, u8 height);
 
-    // 1. Bounding Box - tests drawing at the screen edges
-    // We use 127 because coordinates are 0-127.
-    hkDrawRect(0, 0, 127, 127, 0x0F);
-    sleep_ms(250); // Small delay to see drawing happen in stages
-    hkDisplay();
-
-    // 2. Diagonal Lines - test for the hkDrawLine algorithm
-    hkDrawLine(0, 0, 127, 127, 0x0F);
-    hkDrawLine(0, 127, 127, 0, 0x0F);
-    sleep_ms(250);
-    hkDisplay();
-
-    // 3. Text - tests both hkDrawChar and hkDrawString
-    hkDrawFastString(20, 5, "SSD1327 gfx OK!");
-    hkDrawFastString(30, 15, "0123456789");
-
-    // Test some individual characters
-    hkDrawFastChar(40, 30, '#');
-    hkDrawFastChar(50, 30, '$');
-    hkDrawFastChar(60, 30, '%');
-    hkDrawFastChar(70, 30, '&');
-    hkDrawFastChar(80, 30, '*');
-    sleep_ms(250);
-    hkDisplay();
-
-    // 4. Shapes - tests rectangles, fill, and alignment
-    hkFillRect(8, 45, 50, 25, 0x0F);   // Draw a solid rectangle
-    hkDrawRect(6, 43, 54, 29, 0x0F);   // Draw an outline around it
-    sleep_ms(250);
-    hkDisplay();
-
-    // 5. Fast Lines - tests the optimized horizontal and vertical line functions
-    hkDrawFastVLine(100, 45, 30, 0x0F);
-    hkDrawFastHLine(80, 80, 40, 0x0F);
-    sleep_ms(250);
-    hkDisplay();
-
-    // 6. Font scalling and grayscale
-    hkDrawChar(32, 117, 'A', 0x01, 1);
-    hkDrawChar(40, 110, 'B', 0x06, 2);
-    hkDrawChar(53, 103, 'C', 0x0F, 3);
-    sleep_ms(250);
-    hkDisplay();
-
-    sleep_ms(5000);
-    hkClearBuffer();
-    hkDisplay();
-}
+void hkGraphInit(GraphConfig_t* config);
+void hkGraphDrawAxes(const GraphConfig_t* config);
+void hkGraphAddDataPoint(GraphConfig_t* config, f32 data);
+void hkGraphDrawLegend(const GraphConfig_t* config, const char* title);
+void hkGraphDraw(const GraphConfig_t* config);
