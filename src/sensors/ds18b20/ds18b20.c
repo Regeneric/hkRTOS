@@ -99,8 +99,8 @@ static inline b8 DS18B20_SkipRead(OneWire_Config_t* ow, DS18B20_Config_t* config
     return true;
 }
 
-u8 DS18B20_Read(OneWire_Config_t* ow, DS18B20_Config_t* config) {
-    HTRACE("ds18b20.c: DS18B20_Read(OneWire_Config_t*, DS18B20_Config_t*):u8");
+u8 DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data) {
+    HTRACE("ds18b20.c: DS18B20_ReadAndProcess(OneWire_Config_t*, DS18B20_Config_t*, DS18B20_DataPacket_t*):u8");
 
     if(DS18B20_Convert(ow, config->address) == false) {
         HDEBUG("DS18B20_Read(): Failed to start conversion");
@@ -121,7 +121,8 @@ u8 DS18B20_Read(OneWire_Config_t* ow, DS18B20_Config_t* config) {
     i16 rawTemp = (i16)((config->data[1] << 8) | config->data[0]);
     f32 temp = (f32)rawTemp/16.0f;
 
-    config->temperature = temp;
+    data->temperature = temp;
+    data->address = ONEW_SKIP_ROM ? 0x00 : config->address;
     return result;
 }
 

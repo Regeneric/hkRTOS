@@ -17,9 +17,6 @@ enum {
 typedef struct PMS5003_Config_t {
     u8*    rawData;
     size_t length;
-    u16    pm1;
-    u16    pm2_5;
-    u16    pm10;
 } PMS5003_Config_t;
 
 // I know it's redundant, I just want to have some universal pattern around my code
@@ -32,7 +29,7 @@ typedef struct PMS5003_DataPacket_t {
 } PMS5003_DataPacket_t;
 
 
-void PMS5003_ProcessData(UART_Config_t* uart, PMS5003_Config_t* config);
+void PMS5003_ProcessData(PMS5003_Config_t* config, PMS5003_DataPacket_t* data);
 b8 PMS5003_Read(UART_Config_t* uart, PMS5003_Config_t* config);
 
 

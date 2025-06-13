@@ -15,6 +15,8 @@ static void UART_DMA_ISR();
 
 
 static void UART_DMA_Init(const UART_Config_t* uart) {
+    HTRACE("uart_dma.c -> s:UART_DMA_Init(const UART_Config_t*):void");
+
     sgUART_DMA_Channel = dma_claim_unused_channel(true);
     dma_channel_config cfg = dma_channel_get_default_config(sgUART_DMA_Channel);
 
@@ -33,7 +35,7 @@ static void UART_DMA_Init(const UART_Config_t* uart) {
 
 
 void UART_Init(UART_Config_t* config) {
-    HTRACE("uart.c -> UART_Init(const UART_Config_t*):void");
+    HTRACE("uart_dma.c -> UART_Init(UART_Config_t*):void");
 
     uart_init(config->uart, config->baudrate);
 
@@ -47,7 +49,7 @@ void UART_Init(UART_Config_t* config) {
 }
 
 void UART_Stop(UART_Config_t* config) {
-    HTRACE("uart.c -> UART_Stop(const UART_Config_t*):void");
+    HTRACE("uart_dma.c -> UART_Stop(UART_Config_t*):void");
 
     uart_deinit(config->uart);
 
@@ -56,6 +58,8 @@ void UART_Stop(UART_Config_t* config) {
 }
 
 void UART_ReadPacket(UART_Config_t* config) {
+    HTRACE("uart_dma.c -> UART_ReadPacket(UART_Config_t*):void");
+
     sgUART_Config->status = UART_DATA_RX_IN_PROGRESS;
     dma_channel_set_write_addr(sgUART_DMA_Channel, config->data, true);
     return;

@@ -44,7 +44,7 @@ typedef struct DS18B20_DataPacket_t {
     b8   DS18B20_Convert(OneWire_Config_t* ow, DS18B20_Config_t* config);
     void DS18B20_Poll(OneWire_Config_t* ow, DS18B20_Config_t* config);
 #else
-    u8 DS18B20_Read(OneWire_Config_t* ow, DS18B20_Config_t* config);
+    u8 DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data);
 #endif
 
 

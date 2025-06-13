@@ -2,29 +2,29 @@
 #include <sensors/pms5003/pms5003.h>
 
 
-static b8 PMS5003_ValidatePacket(const UART_Config_t* config) {
-    HTRACE("pms5003.c -> PMS5003_ValidatePacket(PMS5003_Config_t*):b8");
+static b8 PMS5003_ValidatePacket(PMS5003_Config_t* config) {
+    HTRACE("pms5003.c -> s:PMS5003_ValidatePacket(PMS5003_Config_t*):b8");
 
-    if(config->data[0] != 0x42 || config->data[1] != 0x4D) {
+    if(config->rawData[0] != 0x42 || config->rawData[1] != 0x4D) {
         HWARN("PMS5003_ValidatePacket(): Validation failed; invalid start bytes.");
         return false;
     }
 
     u16 checksum = 0;
-    for(u8 i = 0; i < (hkPMS_PACKET_LENGTH-2); i++) checksum += config->data[i];
+    for(u8 i = 0; i < (hkPMS_PACKET_LENGTH-2); i++) checksum += config->rawData[i];
 
-    u16 sensorChecksum = (config->data[30] << 8) | config->data[31];
+    u16 sensorChecksum = (config->rawData[30] << 8) | config->rawData[31];
     return (checksum == sensorChecksum);
 }
 
 
-void PMS5003_ProcessData(UART_Config_t* uart, PMS5003_Config_t* config) {
-    HTRACE("pms5003.c -> PMS5003_ProcessData(UART_Config_t*, PMS5003_Config_t*):void");
-    if(!PMS5003_ValidatePacket(uart)) return;
+void PMS5003_ProcessData(PMS5003_Config_t* config, PMS5003_DataPacket_t* data) {
+    HTRACE("pms5003.c -> PMS5003_ProcessData(PMS5003_Config_t*, PMS5003_DataPacket_t*):void");
+    if(!PMS5003_ValidatePacket(config)) return;
 
-    config->pm1   = (uart->data[4] << 8) | uart->data[5];
-    config->pm2_5 = (uart->data[6] << 8) | uart->data[7];
-    config->pm10  = (uart->data[8] << 8) | uart->data[9];
+    data->pm1   = (config->rawData[4] << 8) | config->rawData[5];
+    data->pm2_5 = (config->rawData[6] << 8) | config->rawData[7];
+    data->pm10  = (config->rawData[8] << 8) | config->rawData[9];
 }
 
 b8 PMS5003_Read(UART_Config_t* uart, PMS5003_Config_t* config) {

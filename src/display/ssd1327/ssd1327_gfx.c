@@ -20,6 +20,7 @@ void GFX_ClearBuffer() {
     memset(sgGFX_InternalState.frameBuffer, 0, sizeof(sgGFX_InternalState.frameBuffer));
     sgGFX_InternalState.cursorX = 0;
     sgGFX_InternalState.cursorY = 0;
+    sgGFX_InternalState.textSize = 1;   // TODO: for now it's hardcoded
 }
 
 void GFX_Display() {
@@ -46,7 +47,7 @@ void GFX_DrawPixel(u8 x, u8 y, u8 color) {
         return;
     }
 
-    u8 grayscale_color = color ? 0x0F : 0x00;
+    u8 grayscaleColor = color ? 0x0F : 0x00;
     u16 index = (y * SSD1327_WIDTH + x) / 2;
 
     if(x % 2 == 0) {
@@ -54,13 +55,13 @@ void GFX_DrawPixel(u8 x, u8 y, u8 color) {
         // First, clear the high nibble (AND with 0b00001111)
         sgGFX_InternalState.frameBuffer[index] &= 0x0F;
         // Then, set the high nibble with our color (OR with color shifted left by 4)
-        sgGFX_InternalState.frameBuffer[index] |= (grayscale_color << 4);
+        sgGFX_InternalState.frameBuffer[index] |= (color << 4);
     } else {
         // The pixel is in an ODD column (1, 3, 5...). It's stored in the LOW nibble.
         // First, clear the low nibble (AND with 0b11110000)
         sgGFX_InternalState.frameBuffer[index] &= 0xF0;
         // Then, set the low nibble with our color
-        sgGFX_InternalState.frameBuffer[index] |= grayscale_color;
+        sgGFX_InternalState.frameBuffer[index] |= color;
     }
 }
 
@@ -115,9 +116,11 @@ void GFX_FillRect(u8 x, u8 y, u8 w, u8 h, u8 color) {
     for(u8 i = 0; i < h; ++i) GFX_DrawFastHLine(x, y+i, w, color);
 }
 
-void GFX_DrawChar(u8 x, u8 y, u8 c, u8 color) {
+void GFX_DrawFastChar(u8 x, u8 y, u8 c) {GFX_DrawChar(x, y, c, 0x0F, 1);}
+void GFX_DrawChar(u8 x, u8 y, u8 c, u8 color, u8 size) {
     HTRACE("ssd1327_gfx.c -> GFX_DrawChar(u8, u8, u8, u8):void");
 
+    sgGFX_InternalState.textSize = (size > 1) ? size : 1;
     if(c < 32 || c > 126) {
         HDEBUG("GFX_DrawChar(): Could not find character %c in the font array", c);
         return;
@@ -126,19 +129,24 @@ void GFX_DrawChar(u8 x, u8 y, u8 c, u8 color) {
     u16 fontIndex = (c-32) * 5;
     for(u8 col = 0; col < 5; col++) {
         u8 line = FONT_5x7[fontIndex + col];
-        for(u8 row = 0; row < 8; row++) {
-            if((line >> row) & 0x1) GFX_DrawPixel(x+col, y+row, color);
+        for(u8 row = 0; row < 7; row++) {
+            if((line >> row) & 0x1) {
+                if(size == 1) GFX_DrawPixel(x+col, y+row, color);
+                else GFX_FillRect(x + (col * size), y + (row * size), size, size, color);
+            }
         }
     }
 }
 
-void GFX_DrawString(u8 x, u8 y, const char* str, u8 color) {
+void GFX_DrawFastString(u8 x, u8 y, const char* str) {GFX_DrawString(x, y, str, 0x0F, 1);}
+void GFX_DrawString(u8 x, u8 y, const char* str, u8 color, u8 size) {
     sgGFX_InternalState.cursorX = x;
     sgGFX_InternalState.cursorY = y;
+    sgGFX_InternalState.textSize = size;
 
     while(*str) {
-        GFX_DrawChar(sgGFX_InternalState.cursorX, sgGFX_InternalState.cursorY, *str, color);
-        sgGFX_InternalState.cursorX += (5 * sgGFX_InternalState.textSize) + 1;
+        GFX_DrawChar(sgGFX_InternalState.cursorX, sgGFX_InternalState.cursorY, *str, color, size);
+        sgGFX_InternalState.cursorX += (5 * size) + 1;
         str++;
     }
 }

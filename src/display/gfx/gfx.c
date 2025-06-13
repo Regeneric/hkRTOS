@@ -9,5 +9,7 @@ void hkDrawFastHLine(u8 x, u8 y, u8 w, u8 color) {GFX_DrawFastHLine(x, y, w, col
 void hkDrawFastVLine(u8 x, u8 y, u8 h, u8 color) {GFX_DrawFastVLine(x, y, h, color);}
 void hkDrawRect(u8 x, u8 y, u8 w, u8 h, u8 color) {GFX_DrawRect(x, y, w, h, color);}
 void hkFillRect(u8 x, u8 y, u8 w, u8 h, u8 color) {GFX_FillRect(x, y, w, h, color);}
-void hkDrawChar(u8 x, u8 y, u8 c, u8 color) {GFX_DrawChar(x, y, c, color);}
-void hkDrawString(u8 x, u8 y, const char* str, u8 color) {GFX_DrawString(x, y, str, color);}
+void hkDrawFastChar(u8 x, u8 y, u8 c) {GFX_DrawChar(x, y, c, 0x0F, 1);}
+void hkDrawChar(u8 x, u8 y, u8 c, u8 color, u8 size) {GFX_DrawChar(x, y, c, color, size);}
+void hkDrawFastString(u8 x, u8 y, const char* str) {GFX_DrawString(x, y, str, 0x0F, 1);}
+void hkDrawString(u8 x, u8 y, const char* str, u8 color, u8 size) {GFX_DrawString(x, y, str, color, size);}

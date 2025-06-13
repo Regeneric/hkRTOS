@@ -66,8 +66,9 @@ void main(void) {
     DisplayConfig_t hkSSD1327 = {
         .width    = 128,
         .height   = 128,
-        .address  = SSD1327_ADDRESS
-    }; // Display_Init(&i2c, &hkSSD1327);
+        .address  = SSD1327_ADDRESS,
+        .textSize = 1
+    }; Display_Init(&i2c, &hkSSD1327);
 
 
     // static UART_Config_t uart;
@@ -84,9 +85,6 @@ void main(void) {
 
     // static PMS5003_Config_t hkPMS5003;
     static u8 hkPMS5003_RawData[32];
-    hkPMS5003.pm1    = 0;
-    hkPMS5003.pm2_5  = 0;
-    hkPMS5003.pm10   = 0;
     hkPMS5003.rawData = hkPMS5003_RawData;
     hkPMS5003.length  = sizeof(hkPMS5003_RawData);
 
@@ -147,10 +145,11 @@ void main(void) {
     add_repeating_timer_ms(-2000, DHT11_Timer_ISR, NULL, &hkDHT11_Timer);
     add_repeating_timer_ms(-2300, PMS5003_Timer_ISR, NULL, &hkPMS5003_Timer);
 
+    hkDrawTestPattern();    // Display test pattern
     
     while(FOREVER) {
-        DS18B20_Read(&ow0, &hkDS18B20);
-        HDEBUG("[DS18B20] TEMP: %.2f*C", hkDS18B20.temperature);
+        DS18B20_ReadAndProcess(&ow0, &hkDS18B20, &hkDS18B20_Data);
+        HDEBUG("[DS18B20] TEMP: %.2f*C", hkDS18B20_Data.temperature);
         char* hkDS18B20_Json = hkDS18B20_Data.jsonify(&hkDS18B20_Data);
 
         if(hkDHT11.status == DHT_READ_SUCCESS) {
@@ -161,10 +160,10 @@ void main(void) {
         }
 
         if(uart.status == UART_DATA_RX_SUCCESS) {
-            PMS5003_ProcessData(&uart, &hkPMS5003);
-            HDEBUG("[PM 1  ]: %u ug/m3"  , hkPMS5003.pm1);
-            HDEBUG("[PM 2.5]: %u ug/m3"  , hkPMS5003.pm2_5);
-            HDEBUG("[PM 10 ]: %u ug/m3\n", hkPMS5003.pm10);
+            PMS5003_ProcessData(&hkPMS5003, &hkPMS5003_Data);
+            HDEBUG("[PMS5003] PM   1: %u ug/m3"  , hkPMS5003_Data.pm1);
+            HDEBUG("[PMS5003] PM 2.5: %u ug/m3"  , hkPMS5003_Data.pm2_5);
+            HDEBUG("[PMS5003] PM  10: %u ug/m3\n", hkPMS5003_Data.pm10);
             char* hkPMS5003_Json = hkPMS5003_Data.jsonify(&hkPMS5003_Data);
         }
 
