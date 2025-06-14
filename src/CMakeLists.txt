@@ -3,6 +3,7 @@ add_subdirectory(sensors)
 add_subdirectory(comm)
 add_subdirectory(storage)
 add_subdirectory(display)
+add_subdirectory(input)
 
 add_executable(${PROJECT_NAME}
     main.c
@@ -21,6 +22,7 @@ target_link_libraries(${PROJECT_NAME}
         libcomm
         libstorage
         libdisplay
+        libinput
 
         segger_sysview
         segger_sysview_freertos

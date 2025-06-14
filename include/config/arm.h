@@ -38,9 +38,6 @@
         #else
             #define hkWIFI_PASS         WIFI_PASSWORD                   // If passed from CMake
         #endif
-    #else
-        #define hkWIFI_SSID
-        #define hkWIFI_PASS
     #endif
     #define hkENABLE_ONEWIRE            true                            // Enable 1-Wire communication
     #if hkENABLE_ONEWIRE
@@ -49,14 +46,8 @@
         #define hkOW_PIN                13                              // Data pin for the 1-Wire interface
         #define hkOW_USE_DMA            false                           // Decide if we want to use DMA for data collection or CPU
         #if hkOW_USE_DMA            
-            #define hkOW_DMA_IRQ        DMA_IRQ_1                       // Which DMA IRQ to use
-        #else
-            #define hkOW_DMA_IRQ                        
+            #define hkOW_DMA_IRQ        DMA_IRQ_1                       // Which DMA IRQ to use                     
         #endif
-    #else
-        #define hkOW_PIO
-        #define hkOW_PIO_SM
-        #define hkOW_PIN
     #endif
     #define hkENABLE_UART               true                            // Enable UART communication
     #if hkENABLE_UART
@@ -65,8 +56,6 @@
         #define hkUART_RX               9                               // RX GPIO PIN
         #define hkUART_BAUDRATE         9600                            // Bps
         #define hkUART_DMA_IRQ          DMA_IRQ_1                       // Which DMA IRQ to use
-    #else
-
     #endif
 
     // Sensors
@@ -80,12 +69,7 @@
             #define hkDHT_USE_DMA       true                            // Decide if we want to use DMA for data collection or CPU
             #if hkDHT_USE_DMA
                 #define hkDHT_DMA_IRQ   DMA_IRQ_0                       // Which DMA IRQ to use   
-            #else
-                #define hkDHT_DMA_IRQ
             #endif
-        #else
-            #define hkDHT_PIO
-            #define hkDHT_PIO_SM
         #endif
     #endif
     #define hkBME280_USE_SENSOR         true                            // Decide if we want to use BME280
@@ -108,12 +92,12 @@
         #define hkEEPROM_24AA01         true                            // 1Kb   (128B) I2C EEPROM - compatible with 24LC01B - operating voltage from 1.7V
         #define hkEEPROM_24FC01         false                           // 1Kb   (128B) I2C EEPROM - compatible with 24LC01B - clock up to 1000 KHz
     #endif
-    // #define hkEEPROM_CAT24C512       true                            // 512Kb (64KB) I2C EEPROM
-    // #define hkFRAM_MB85RC256V        true                            // 256Kb (32KB) I2C FRAM
+    #define hkEEPROM_CAT24C512          false                           // 512Kb (64KB) I2C EEPROM
+    #define hkFRAM_MB85RC256V           false                           // 256Kb (32KB) I2C FRAM
     #define hkFLASH_W25Q128JV           true                            // 128Mb (16MB) SPI FLASH
 
     // Display
-    // #define hkLCD_PCD8544            true                            // Nokia 5110 LCD Display
+    #define hkLCD_PCD8544               false                           // Nokia 5110 LCD Display
     #define hkOLED_SSD1327              true                            // Waveshare 13992 1.5" OLED
     #if hkOLED_SSD1327
         #define hkSSD1327_USE_I2C       true                            // true - I2C ; false - 4 Wire SPI
@@ -121,6 +105,14 @@
     #define hkOLED_SH1107               false
     #if hkOLED_SH1107
         #define hkSH1107_USE_I2C        true                            // true - I2C ; false - 4 Wire SPI
+    #endif
+
+    // Input
+    #define hkKY40_ENCODER              true                            // Keyes KY-040 Rotary Encoder
+    #if hkKY40_ENCODER
+        #define hkKY40_CLK_PIN          16                              // CLK GPIO PIN
+        #define hkKY40_DT_PIN           17                              // DT GPIO PIN
+        #define hkKY40_BTN_PIN          18                              // Button GPIO PIN
     #endif
 
     // Debugging

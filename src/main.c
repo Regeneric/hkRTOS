@@ -44,6 +44,8 @@
 #include <display/gfx/gfx.h>
 #include <display/ssd1327/ssd1327_config.h>
 
+#include <input/encoders/ky40.h>
+
 static DHT_Config_t hkDHT11;
 static UART_Config_t uart;
 static I2C_Config_t  hkI2C0;
@@ -60,53 +62,15 @@ static mutex_t hkI2C1_Mutex;
 queue_t displayDataQueue;
 extern void hkDisplayLoop();
 
-static bool DHT11_Timer_ISR(struct repeating_timer* t) {
-    DHT11_Read(&hkDHT11);
-    return true;
-}
-
-static bool PMS5003_Timer_ISR(struct repeating_timer* t) {
-    PMS5003_Read(&uart, &hkPMS5003);
-    return true;
-}
-
-static bool DS18B20_Timer_ISR(struct repeating_timer* t) {
-    DS18B20_Read(&hkDS18B20);
-    return true;
-}
-
-static i64 SGP30_Read_Callback(alarm_id_t id, void* data) {
-    SGP30_Read(&hkI2C0, &hkSGP30);
-    return false;
-}
-
-static bool SGP30_Timer_ISR(struct repeating_timer* t) {
-    SGP30_InitRead(&hkI2C0, &hkSGP30);
-    add_alarm_in_ms(15, SGP30_Read_Callback, NULL, true);
-    return true;
-}
-
-static i64 SGP30_Baseline_Callback(alarm_id_t id, void* data) {
-    SGP30_GetBaseline(&hkI2C0, &hkSGP30);
-    return false;
-}
-
-static bool SGP30_Baseline_Timer_ISR(struct repeating_timer* t) {
-    SGP30_InitGetBaseline(&hkI2C0, &hkSGP30);
-    add_alarm_in_ms(15, SGP30_Baseline_Callback, NULL, true);
-    return true;
-}
-
-static i64 BME280_Read_Callback(alarm_id_t id, void* data) {
-    BME280_Read(&hkI2C0, &hkBME280);
-    return false;
-}
-
-static bool BME280_Timer_ISR(struct repeating_timer* t) {
-    BME280_InitRead(&hkI2C0, &hkBME280);
-    add_alarm_in_ms(15, BME280_Read_Callback, NULL, true);
-    return true;
-}
+static bool DHT11_Timer_ISR(struct repeating_timer* t);
+static bool PMS5003_Timer_ISR(struct repeating_timer* t);
+static bool DS18B20_Timer_ISR(struct repeating_timer* t);
+static i64 SGP30_Read_Callback(alarm_id_t id, void* data);
+static bool SGP30_Timer_ISR(struct repeating_timer* t);
+static i64 SGP30_Baseline_Callback(alarm_id_t id, void* data);
+static bool SGP30_Baseline_Timer_ISR(struct repeating_timer* t);
+static i64 BME280_Read_Callback(alarm_id_t id, void* data);
+static bool BME280_Timer_ISR(struct repeating_timer* t);
 
 
 void main(void) {
@@ -226,6 +190,9 @@ void main(void) {
     hkBME280.rawData = hkBME280_RawData;
     hkBME280.length  = sizeof(hkBME280_RawData);
     hkBME280.status  = BME_INIT;
+    hkBME280.humiditySampling = 0x02;
+    hkBME280.iirCoefficient   = 0x08;
+    hkBME280.tempAndPressureMode = 0x49;
     BME280_Init(&hkI2C0, &hkBME280);
 
     BME280_DataPacket_t hkBME280_Data = {
@@ -253,6 +220,12 @@ void main(void) {
     queue_init(&displayDataQueue, sizeof(Sensors_DataPacket_t), 2);
     multicore_launch_core1(hkDisplayLoop);
     HINFO("[CORE1]: Core started for display rendering");
+
+    KY40_Config_t hkKY40 = {
+        .clk = 16,
+        .dt  = 17,
+        .position = 0
+    }; KY40_Init(&hkKY40);
 
     while(FOREVER) {
         DS18B20_ReadAndProcess(&ow0, &hkDS18B20, &hkDS18B20_Data);
@@ -314,7 +287,61 @@ void main(void) {
             queue_try_add(&displayDataQueue, &dataToDisplay);
         }
 
+        HDEBUG("POSITION: %d", hkKY40.position);
+
         printf("\n");
-        // sleep_ms(1000);
+        sleep_ms(1000);
     }
+}
+
+
+
+
+
+static bool DHT11_Timer_ISR(struct repeating_timer* t) {
+    DHT11_Read(&hkDHT11);
+    return true;
+}
+
+static bool PMS5003_Timer_ISR(struct repeating_timer* t) {
+    PMS5003_Read(&uart, &hkPMS5003);
+    return true;
+}
+
+static bool DS18B20_Timer_ISR(struct repeating_timer* t) {
+    DS18B20_Read(&hkDS18B20);
+    return true;
+}
+
+static i64 SGP30_Read_Callback(alarm_id_t id, void* data) {
+    SGP30_Read(&hkI2C0, &hkSGP30);
+    return false;
+}
+
+static bool SGP30_Timer_ISR(struct repeating_timer* t) {
+    SGP30_InitRead(&hkI2C0, &hkSGP30);
+    add_alarm_in_ms(15, SGP30_Read_Callback, NULL, true);
+    return true;
+}
+
+static i64 SGP30_Baseline_Callback(alarm_id_t id, void* data) {
+    SGP30_GetBaseline(&hkI2C0, &hkSGP30);
+    return false;
+}
+
+static bool SGP30_Baseline_Timer_ISR(struct repeating_timer* t) {
+    SGP30_InitGetBaseline(&hkI2C0, &hkSGP30);
+    add_alarm_in_ms(15, SGP30_Baseline_Callback, NULL, true);
+    return true;
+}
+
+static i64 BME280_Read_Callback(alarm_id_t id, void* data) {
+    BME280_Read(&hkI2C0, &hkBME280);
+    return false;
+}
+
+static bool BME280_Timer_ISR(struct repeating_timer* t) {
+    BME280_InitRead(&hkI2C0, &hkBME280);
+    add_alarm_in_ms(15, BME280_Read_Callback, NULL, true);
+    return true;
 }

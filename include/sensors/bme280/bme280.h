@@ -1,8 +1,10 @@
 #pragma once
 #include <defines.h>
+#include <stdio.h>
 #include <pico/sync.h>
 
-#define hkBME280_ADDRESS 0x76   // or 0x77
+#define hkBME280_ADDRESS    0x76   // or 0x77
+#define hkBM280_JSON_BUFFER 64
 
 enum {
     BME_INIT,
@@ -44,6 +46,9 @@ typedef struct BME280_Config_t {
     u8*    rawData;
     size_t length;
     vu16   status;
+    u8     humiditySampling;
+    u8     iirCoefficient;
+    u8     tempAndPressureMode;
     BME280_CalibrationParams_t params;
 } BME280_Config_t;
 
@@ -56,9 +61,30 @@ typedef struct BME280_DataPacket_t {
     json jsonify;
 } BME280_DataPacket_t;
 
-u32  BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config);
-void BME280_InitRead(I2C_Config_t* i2c, BME280_Config_t* config);
-void BME280_Read(I2C_Config_t* i2c, BME280_Config_t* config);
+i32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config);
+i32 BME280_InitRead(I2C_Config_t* i2c, BME280_Config_t* config);
+i32 BME280_Read(I2C_Config_t* i2c, BME280_Config_t* config);
+i32 BME280_WriteCommand(I2C_Config_t* i2c, BME280_Config_t* config, u8 command);
+
 void BME280_ProcessData(BME280_Config_t* config, BME280_DataPacket_t* data);
 
-u32 BME280_WriteCommand(I2C_Config_t* i2c, BME280_Config_t* config, u8 command);
+
+static char* BME280_Jsonify(const void* self) {   
+    const BME280_DataPacket_t* data = (BME280_DataPacket_t*)self;
+    
+    const char* json = "{"
+        "\"sensor\": \"bme280\","
+        "\"pressure\": %.2f,"
+        "\"temperature\": %.2f,"
+        "\"humidity\": %.2f"
+    "}";
+    
+    static char buffer[hkBM280_JSON_BUFFER];
+    u32 requiredLength = snprintf(buffer, sizeof(buffer), json, data->pressure, data->temperature, data->humidity);
+    if(requiredLength > sizeof(buffer)) {
+        HERROR("[SGP30] Buffer size is to small to send this data packet!\n");
+        return NULL;
+    }
+
+    return buffer;
+}

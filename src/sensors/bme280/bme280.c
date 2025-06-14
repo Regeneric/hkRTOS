@@ -5,25 +5,6 @@
 #include <sensors/bme280/bme280.h>
 
 
-u32 BME280_WriteCommands(I2C_Config_t* i2c, BME280_Config_t* config, u8* commands, size_t len) {
-    HTRACE("bme280.c -> BME280_WriteCommand(I2C_Config_t*, BME280_Config_t*, u8*, size_t):u32");
-
-    mutex_enter_blocking(i2c->mutex);
-    HTRACE("BME280_WriteCommands(): Mutex acquired");
-
-    u32 status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, len, false);
-    if(status == PICO_ERROR_GENERIC) {
-        HDEBUG("BME280_WriteCommand(): Couldn't write data to device at address: 0x%x", hkBME280_ADDRESS);
-        mutex_exit(i2c->mutex);
-        HTRACE("BME280_WriteCommands(): Mutex released");
-        return false;
-    } 
-    
-    mutex_exit(i2c->mutex);
-    HTRACE("BME280_WriteCommands(): Mutex released");
-    return status;
-}
-
 // Official Bosch implementation
 i32 tFine;
 static i32 BME280_CompensateTemp(i32 adcT, BME280_Config_t* config) {
@@ -73,8 +54,30 @@ static u32 BME280_CompensateHumidity(i32 adcH, BME280_Config_t* config) {
 }
 
 
-static void BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* config) {
-    HTRACE("bme280.c -> BME280_ReadCalibrationData(I2C_Config_t*, BME280_Config_t*):u32");
+i32 BME280_WriteCommands(I2C_Config_t* i2c, BME280_Config_t* config, u8* commands, size_t len) {
+    HTRACE("bme280.c -> BME280_WriteCommand(I2C_Config_t*, BME280_Config_t*, u8*, size_t):i32");
+
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_WriteCommands(): Mutex acquired");
+
+    u32 status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, len, false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_WriteCommand(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_WriteCommands(): Mutex released");
+        
+        return false;
+    } 
+    
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_WriteCommands(): Mutex released");
+
+    return status;
+}
+
+static i32 BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* config) {
+    HTRACE("bme280.c -> s:BME280_ReadCalibrationData(I2C_Config_t*, BME280_Config_t*):i32");
     
     u8 buffer[26];
     u8 commands[1]; commands[0] = BME_REG_CALIB_00;
@@ -83,8 +86,25 @@ static void BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* confi
     mutex_enter_blocking(i2c->mutex);
     HTRACE("BME280_ReadCalibrationData(): Mutex acquired");
 
-    i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, 1, true);
-    i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, buffer, 26, false);
+    i32 status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, 1, true);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_ReadCalibrationData(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_ReadCalibrationData(): Mutex released");
+        
+        return status;
+    } 
+
+    status = i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, buffer, 26, false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_ReadCalibrationData(): Could not read data from device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_ReadCalibrationData(): Mutex released");
+        
+        return status;
+    } 
 
     mutex_exit(i2c->mutex);
     HTRACE("BME280_ReadCalibrationData(): Mutex released");
@@ -110,8 +130,25 @@ static void BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* confi
     mutex_enter_blocking(i2c->mutex);
     HTRACE("BME280_ReadCalibrationData(): Mutex acquired");
 
-    i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, 1, true);
-    i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, buffer, 7, false);
+    status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, 1, true);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_ReadCalibrationData(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_ReadCalibrationData(): Mutex released");
+        
+        return status;
+    }
+
+    status = i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, buffer, 7, false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_ReadCalibrationData(): Could not read data from device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_ReadCalibrationData(): Mutex released");
+        
+        return status;
+    }
 
     mutex_exit(i2c->mutex);
     HTRACE("BME280_ReadCalibrationData(): Mutex released");
@@ -121,75 +158,145 @@ static void BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* confi
     config->params.dig_H4 = (buffer[3] << 4) | (buffer[4] & 0x0F); // H4 and H5 shares the same byte
     config->params.dig_H5 = (buffer[5] << 4) | (buffer[4] >> 4);   // H4 and H5 shares the same byte
     config->params.dig_H6 = (i8)buffer[6];
+
+    return true;    // 1 for success, PICO_ERROR_GENERIC for error
 }
 
-u32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config) {
-    HTRACE("bme280.c -> BME280_Init(I2C_Config_t*, BME280_Config_t*):u32");
+i32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config) {
+    HTRACE("bme280.c -> BME280_Init(I2C_Config_t*, BME280_Config_t*):i32");
     HINFO("BME280 initializing...");
 
     memset(config->rawData, 0, config->length);
-    BME280_ReadCalibrationData(i2c, config);
-    HINFO("BME280 calibration complete");
 
-    // Oversampling x2; IIR filter enabled; Forced mode
+    i32 status = BME280_ReadCalibrationData(i2c, config);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_Init(): Could not read calibration data");
+        return status;
+    } else HINFO("BME280 calibration complete");
 
-    // TODO: oversamplig, operating mode etc. should be read from config
     // Humidity
-    mutex_enter_blocking(i2c->mutex);
-    HTRACE("BME280_Init(): Mutex acquired");
-
     u8 commands[2];
     commands[0] = BME_REG_CTRL_HUM;
-    commands[1] = 0x02;  // Oversampling x2
-    i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    commands[1] = config->humiditySampling;  // Oversampling x2
+    
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_Init(): Mutex acquired");
+    
+    status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_Init(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_Init(): Mutex released");
+        
+        return status;
+    }
+
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_Init(): Mutex released");
 
     // IIR filter coefficient
     commands[0] = BME_REG_CONFIG;
-    commands[1] = 0x08;
-    i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    commands[1] = config->iirCoefficient;
+
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_Init(): Mutex acquired");
+
+    status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_Init(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_Init(): Mutex released");
+        
+        return status;
+    }
+
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_Init(): Mutex released");
 
     // Pressure and temperature
     commands[0] = BME_REG_CTRL_MEAS;
-    commands[1] = 0x49;
-    i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    commands[1] = config->tempAndPressureMode;
+
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_Init(): Mutex acquired");
+
+    status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_Init(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_Init(): Mutex released");
+        
+        return status;
+    }
     
     mutex_exit(i2c->mutex);
     HTRACE("BME280_Init(): Mutex released");
 
     HINFO("BME280 has been configured");
-    return true;
+    return true;    // 1 for success, -1 for error
 }
 
-void BME280_InitRead(I2C_Config_t* i2c, BME280_Config_t* config) {
-    HTRACE("bme280.c -> BME280_InitRead(I2C_Config_t*, BME280_Config_t*):void");
+i32 BME280_InitRead(I2C_Config_t* i2c, BME280_Config_t* config) {
+    HTRACE("bme280.c -> BME280_InitRead(I2C_Config_t*, BME280_Config_t*):i32");
 
-    if(config->status == BME_READ_IN_PROGRESS) return; 
+    if(config->status == BME_READ_IN_PROGRESS) return false; 
     config->status = BME_READ_IN_PROGRESS;
 
     mutex_enter_blocking(i2c->mutex);     
     HTRACE("BME280_InitRead(): Mutex acquired");
 
     u8 commands[2] = {BME_REG_CTRL_MEAS, 0x49};
-    i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    i32 status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_InitRead(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_InitRead(): Mutex released");
+        
+        return status;
+    }
     
     mutex_exit(i2c->mutex);
     HTRACE("BME280_InitRead(): Mutex released");
+
+    return true;
 }
 
-void BME280_Read(I2C_Config_t* i2c, BME280_Config_t* config) {
-    HTRACE("bme280.c -> BME280_Read(I2C_Config_t*, BME280_Config_t*):void");
+i32 BME280_Read(I2C_Config_t* i2c, BME280_Config_t* config) {
+    HTRACE("bme280.c -> BME280_Read(I2C_Config_t*, BME280_Config_t*):i32");
 
     mutex_enter_blocking(i2c->mutex); 
     HTRACE("BME280_Read(): Mutex acquired");
 
     uint8_t reg = 0xF7;
-    i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, &reg, 1, true);
-    i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, config->rawData, 8, false);
+    i32 status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, &reg, 1, true);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_Read(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_Read(): Mutex released");
+        
+        return status;
+    }
+
+    status = i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, config->rawData, 8, false);
+    if(status == PICO_ERROR_GENERIC) {
+        HWARN("BME280_Read(): Could not write data to device at address: 0x%x", hkBME280_ADDRESS);
+        
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_Read(): Mutex released");
+        
+        return status;
+    }
     
     mutex_exit(i2c->mutex);
     HTRACE("BME280_Read(): Mutex released");
 
     config->status = BME_READ_SUCCESS;
+    return true;
 }
 
 void BME280_ProcessData(BME280_Config_t* config, BME280_DataPacket_t* data) {

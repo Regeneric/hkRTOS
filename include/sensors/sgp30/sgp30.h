@@ -37,14 +37,14 @@ typedef struct SGP30_DataPacket_t {
 } SGP30_DataPacket_t;
 
 
-u32  SGP30_WriteCommand(I2C_Config_t* i2c, SGP30_Config_t* config, u8 command);
-u32  SGP30_Init(I2C_Config_t* i2c, SGP30_Config_t* config);
+i32  SGP30_WriteCommand(I2C_Config_t* i2c, SGP30_Config_t* config, u8 command);
+i32  SGP30_Init(I2C_Config_t* i2c, SGP30_Config_t* config);
 void SGP30_ProcessData(SGP30_Config_t* config, SGP30_DataPacket_t* data);
 void SGP30_InitRead(I2C_Config_t* i2c, SGP30_Config_t* config);
-void SGP30_Read(I2C_Config_t* i2c, SGP30_Config_t* config);
+i32  SGP30_Read(I2C_Config_t* i2c, SGP30_Config_t* config);
 
 void SGP30_InitGetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config);
-b8   SGP30_GetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config);
+i32  SGP30_GetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config);
 void SGP30_ProcessBaseline(SGP30_Config_t* config);
 
 
