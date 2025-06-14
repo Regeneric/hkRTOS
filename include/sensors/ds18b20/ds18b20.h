@@ -14,12 +14,15 @@ typedef enum {
 } DS18B20_Commands;
 
 typedef enum {
-    DS18B20_STATE_IDLE,
-    DS18B20_STATE_CONVERT_CMD_SENT,
-    DS18B20_STATE_WAITING_FOR_CONVERSION,
-    DS18B20_STATE_READY_TO_READ,
-    DS18B20_STATE_READ_CMD_SENT,
-    DS18B20_STATE_READING_SCRATCHPAD
+    DS18B20_STATE_IDLE,                 
+    DS18B20_STATE_START_CONVERSION,     
+    DS18B20_STATE_WAITING_FOR_CONVERSION, 
+    DS18B20_STATE_START_READ,           
+    DS18B20_STATE_READING_SCRATCHPAD,   
+    DS18B20_STATE_PROCESS_DATA,        
+    DS18B20_DATA_READY,
+    DS18B20_DATA_ERROR,
+    DS18B20_DATA_PROCESSED 
 } DS18B20_State_t;
 
 typedef struct DS18B20_Config_t {
@@ -28,7 +31,9 @@ typedef struct DS18B20_Config_t {
     size_t length;
     void*  queue;
     f32    temperature;
+    u8     dataCount;
     DS18B20_State_t state;
+    absolute_time_t convertStartTime;
 } DS18B20_Config_t;
 
 // I know it's redundant, I just want to have some universal pattern around my code
@@ -36,15 +41,18 @@ typedef char* (*json)(const void* self);
 typedef struct DS18B20_DataPacket_t {
     f32  temperature;
     u64  address;
+    u32  status;
     json jsonify;
 } DS18B20_DataPacket_t;
 
 
 #if hkOW_USE_DMA
-    b8   DS18B20_Convert(OneWire_Config_t* ow, DS18B20_Config_t* config);
-    void DS18B20_Poll(OneWire_Config_t* ow, DS18B20_Config_t* config);
-#else
     u8 DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data);
+#else
+    u8   DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data);
+    void DS18B20_Read(DS18B20_Config_t* config);
+    void DS18B20_Tick(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data);
+    b8   DS18B20_SetResolution(OneWire_Config_t* ow, u8 resolution);
 #endif
 
 

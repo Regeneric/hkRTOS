@@ -1,6 +1,10 @@
 #pragma once
 #include <defines.h>
 
+#include <stdio.h>
+
+#include <core/logger.h>
+
 #define hkDHT_QUEUE_LEN     5
 #define hkDHT_JSON_BUFFER   64
 
@@ -47,13 +51,13 @@ void DHT11_ReadTask(void* pvParameters);
 
 static void DHT11_ProcessData(DHT_Config_t* config, DHT_DataPacket_t* data) {
     if(config == NULL || data == NULL) {
-        printf("DHT was not properly initialized!\n");
+        HDEBUG("DHT11_ProcessData(): DHT was not properly initialized!\n");
         return;
     }
 
     u8 checksum = (config->data[0] + config->data[1] +config->data[2] + config->data[3]) & 0xFF; 
     if(checksum != config->data[4]) {
-        printf("Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x\n", checksum, config->data[4]);
+        HWARN("DHT11_ProcessData(): Data read failed, invalid checksum; Expected: 0x%x ; Got: 0x%x\n", checksum, config->data[4]);
         config->status = DHT_READ_BAD_CHECKSUM;
         return;
     }

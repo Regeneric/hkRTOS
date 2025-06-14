@@ -28,13 +28,18 @@ typedef enum {
         u8  sm;
         u8  bitMode;
         u8* data;
+        u8  packetSize;
         size_t length;
     } OneWire_Config_t;
 
     void OneWire_Init(OneWire_Config_t* config);
     b8   OneWire_Reset(OneWire_Config_t* config);
-    u8   OneWire_Read(OneWire_Config_t* config, u8* buffer, size_t length);
-    b8   OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length);
+    void OneWire_Read(OneWire_Config_t* config);
+    // u8   OneWire_Read(OneWire_Config_t* config);
+    b8   OneWire_WriteByte(OneWire_Config_t* config, u32 data);
+    void OneWire_Write(OneWire_Config_t* config, u8* data, size_t len);
+    // b8   OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length);
+    u8   OneWire_SearchROM(OneWire_Config_t* config, u64* devices, u8 maxDevices, u8 command);
 #else
     typedef struct OneWire_Config_t {
         u8  gpio;

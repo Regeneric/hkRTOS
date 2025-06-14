@@ -12,6 +12,7 @@
 #include <hardware/dma.h>
 
 #include <core/logger.h>
+#include <comm/dma_irq_handler.h>
 #include <comm/onewire/onewire.h>
 #include <comm/onewire/onewire.pio.h>
 
@@ -24,47 +25,39 @@ static u32 sgOW_DMA_TX_Channel = 0;
 
 static OneWire_Config_t* sgOneWire_Config = NULL;
 
-static void OneWire_DMA_ISR();
-
-
 static void OneWire_DMA_Init(OneWire_Config_t* config) {
     HTRACE("onewire_dma.c -> s:OneWire_DMA_Init(OneWire_Config_t*):void");
 
     sgOW_DMA_RX_Channel = dma_claim_unused_channel(true);
+    dma_channel_config rxcfg = dma_channel_get_default_config(sgOW_DMA_RX_Channel);
+
+    channel_config_set_read_increment(&rxcfg, false);
+    channel_config_set_write_increment(&rxcfg, true);
+    channel_config_set_transfer_data_size(&rxcfg, DMA_SIZE_8);
+    channel_config_set_dreq(&rxcfg, pio_get_dreq(config->pio, config->sm, false));
+
+    dma_channel_configure(sgOW_DMA_RX_Channel, &rxcfg, NULL, &config->pio->rxf[config->sm], 0, false);
+    DMA_OneWire_RX_Register(config, sgOW_DMA_RX_Channel);
+    
+    if(hkOW_DMA_IRQ == DMA_IRQ_0) dma_channel_set_irq0_enabled(sgOW_DMA_RX_Channel, true);
+    else dma_channel_set_irq1_enabled(sgOW_DMA_RX_Channel, true);
+
+
     sgOW_DMA_TX_Channel = dma_claim_unused_channel(true);
+    dma_channel_config txcfg = dma_channel_get_default_config(sgOW_DMA_TX_Channel);
 
-    // RX Channel aka PIO -> Memory
-    dma_channel_config rxCfg = dma_channel_get_default_config(sgOW_DMA_RX_Channel);
-    channel_config_set_transfer_data_size(&rxCfg, DMA_SIZE_8);
-    channel_config_set_read_increment(&rxCfg, false);           // Always read from the PIO FIFO address
-    channel_config_set_write_increment(&rxCfg, true);           // But writing to a sequential address in our buffer
-    channel_config_set_dreq(&rxCfg, pio_get_dreq(config->pio, config->sm, false));
-    dma_channel_configure(sgOW_DMA_RX_Channel, &rxCfg, NULL, &config->pio->rxf[config->sm], 0, false);
+    channel_config_set_read_increment(&txcfg, true);
+    channel_config_set_write_increment(&txcfg, false);
+    channel_config_set_transfer_data_size(&txcfg, DMA_SIZE_8);
+    channel_config_set_dreq(&txcfg, pio_get_dreq(config->pio, config->sm, false));
 
-    // TX Channel aka Memory -> PIO
-    dma_channel_config txCfg = dma_channel_get_default_config(sgOW_DMA_TX_Channel);
-    channel_config_set_transfer_data_size(&txCfg, DMA_SIZE_8);
-    channel_config_set_read_increment(&txCfg, true);            // Read sequentially from our buffer
-    channel_config_set_write_increment(&txCfg, false);          // Always write to the same PIO FIFO address
-    channel_config_set_dreq(&txCfg, pio_get_dreq(config->pio, config->sm, true));
-    dma_channel_configure(sgOW_DMA_TX_Channel, &txCfg, &config->pio->txf[config->sm], NULL, 0, false);
+    dma_channel_configure(sgOW_DMA_TX_Channel, &txcfg, &config->pio->txf[config->sm], NULL, 0, false);
+    DMA_OneWire_TX_Register(config, sgOW_DMA_TX_Channel);
 
-    irq_set_exclusive_handler(hkOW_DMA_IRQ, OneWire_DMA_ISR);
-    irq_set_enabled(hkOW_DMA_IRQ, true);
+    if(hkOW_DMA_IRQ == DMA_IRQ_0) dma_channel_set_irq0_enabled(sgOW_DMA_TX_Channel, true);
+    else dma_channel_set_irq1_enabled(sgOW_DMA_TX_Channel, true);
 
-    dma_channel_set_irq1_enabled(sgOW_DMA_RX_Channel, true);
-}
-
-static b8 OneWire_Transfer(u8* txBuffer, u8* rxBuffer, size_t length) {
-    HTRACE("onewire_dma.c -> s:OneWire_Transfer(u8*, u8*):b8"); 
-
-    dma_channel_set_write_addr(sgOW_DMA_RX_Channel, rxBuffer, false);
-    dma_channel_set_trans_count(sgOW_DMA_RX_Channel, length, false);
-
-    dma_channel_set_read_addr(sgOW_DMA_TX_Channel, txBuffer, false);
-    dma_channel_set_trans_count(sgOW_DMA_TX_Channel, length, true);
-
-    return true;
+    return;
 }
 
 
@@ -103,76 +96,43 @@ b8 OneWire_Reset(OneWire_Config_t* config) {
     }
 }
 
-b8 OneWire_Write(OneWire_Config_t* config, u8* buffer, size_t length) {
-    HTRACE("onewire_dma.c -> OneWire_Write (CPU Send)");
-    if(config->status == ONEW_DMA_IN_PROGRESS) {
+b8 OneWire_WriteByte(OneWire_Config_t* config, u32 data) {
+    HTRACE("onewire.c -> OneWire_WriteByte(OneWire_Config_t*, u8):b8");
+    if(config->status == ONEW_READ_IN_PROGRESS || config->status == ONEW_WRITE_IN_PROGRESS) {
+        HDEBUG("OneWire_WriteByte(): Another read/write in progress!");
         return false;
     }
-    config->status = ONEW_DMA_IN_PROGRESS;
+    config->status = ONEW_WRITE_IN_PROGRESS;
 
-    static u8 dummy_rx;
-    dma_channel_set_write_addr(sgOW_DMA_RX_Channel, &dummy_rx, false);
-    dma_channel_set_trans_count(sgOW_DMA_RX_Channel, length, true); // Trigger (i.e., enable) the channel
+    pio_sm_put_blocking(config->pio, config->sm, (u32)data);
+    pio_sm_get_blocking(config->pio, config->sm);
 
-    for (size_t i = 0; i < length; ++i) pio_sm_put_blocking(config->pio, config->sm, buffer[i]);
+    config->status = ONEW_WRITE_SUCCESS;
     return true;
-
-
-    // HTRACE("onewire_dma.c -> OneWire_WriteByte(OneWire_Config_t*, u8):b8");
-    // if(config->status == ONEW_DMA_IN_PROGRESS) {
-    //     HDEBUG("OneWire_WriteByte(): Another read/write in progress!");
-    //     return false;
-    // }
-    // config->status = ONEW_DMA_IN_PROGRESS;
-
-    // static u8 dummyRx;
-    // OneWire_Transfer(buffer, &dummyRx, length);
-
-    // return true;
 }
 
-u8 OneWire_Read(OneWire_Config_t* config, u8* buffer, size_t length) {
-    HTRACE("onewire_dma.c -> OneWire_Read (CPU Send)");
-    if(config->status == ONEW_DMA_IN_PROGRESS) {
-        return false;
-    }
+void OneWire_Write(OneWire_Config_t* config, u8* data, size_t len) {
+    if(config->status == ONEW_DMA_IN_PROGRESS) return;
     config->status = ONEW_DMA_IN_PROGRESS;
 
-    dma_channel_set_write_addr(sgOW_DMA_RX_Channel, buffer, false);
-    dma_channel_set_trans_count(sgOW_DMA_RX_Channel, length, true); // Trigger the channel
-
-    for (size_t i = 0; i < length; ++i) pio_sm_put_blocking(config->pio, config->sm, 0xFF);
-    return true;
-
-    // HTRACE("onewire_dma.c -> OneWire_Read(OneWire_Config_t*, u8*, size_t):u8");
-    // if(config->status == ONEW_DMA_IN_PROGRESS) {
-    //     HDEBUG("OneWire_Read(): Another read/write in progress!");
-    //     return false;
-    // }
-    // config->status = ONEW_DMA_IN_PROGRESS;
-
-    // static u8 txBuffer[64];
-    // if (config->length > sizeof(txBuffer)) {
-    //     HERROR("OneWire_Read(): Requested read length is larger than the transfer buffer!");
-    //     config->status = ONEW_INIT_SUCCESS;
-    //     return false;
-    // }
-
-    // memset(txBuffer, 0xFF, config->length);
-    // OneWire_Transfer(txBuffer, config->data, config->length);
-    // return true;
+    dma_channel_set_read_addr(sgOW_DMA_TX_Channel, data, len);
+    dma_channel_set_trans_count(sgOW_DMA_TX_Channel, len, true);
 }
 
-static void OneWire_DMA_ISR() {
-    HDEBUG("OneWire_DMA_ISR fired!");
+void OneWire_Read(OneWire_Config_t* config) {
+    if(config->status == ONEW_DMA_IN_PROGRESS) return;
+    config->status = ONEW_DMA_IN_PROGRESS;
 
-    if(dma_channel_get_irq1_status(sgOW_DMA_RX_Channel)) {
-        dma_channel_acknowledge_irq1(sgOW_DMA_RX_Channel);
+    static const u8 dummy = 0xFF;
 
-        if(sgOneWire_Config != NULL) {
-            sgOneWire_Config->status = ONEW_DMA_SUCCESS;
-        }
-    }
+    dma_channel_set_write_addr(sgOW_DMA_RX_Channel, config->data, false);
+    dma_channel_set_trans_count(sgOW_DMA_RX_Channel, config->length, true);
+
+    dma_channel_config txcfg = dma_channel_get_default_config(sgOW_DMA_TX_Channel);
+    dma_channel_set_read_addr(sgOW_DMA_TX_Channel, &dummy, false);
+    channel_config_set_read_increment(&txcfg, false);
+    dma_channel_set_trans_count(sgOW_DMA_TX_Channel, config->length, true);
+    channel_config_set_read_increment(&txcfg, true);
 }
 
 #endif

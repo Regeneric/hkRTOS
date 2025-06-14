@@ -8,7 +8,6 @@
 #include <core/logger.h>
 #include <sensors/ds18b20/ds18b20.h>
 
-static int64_t DS18B20_ConvertCallback(alarm_id_t id, void* userData);
 
 static inline b8 DS18B20_CRC(const u8* data, size_t len) {
     HTRACE("ds18b20.c -> s:DS18B20_CRC(const u8*, size_t):b8");
@@ -26,68 +25,106 @@ static inline b8 DS18B20_CRC(const u8* data, size_t len) {
     } return crc == 0;  // If the final CRC is 0, data is valid
 }
 
-b8 DS18B20_Convert(OneWire_Config_t* ow, DS18B20_Config_t* config) {
+static inline b8 DS18B20_Convert(OneWire_Config_t* ow, u64 address) {
     HTRACE("ds18b20.c -> s:DS18B20_Convert(OneWire_Config_t*):b8");
-
-    if(config->state != DS18B20_STATE_IDLE) {
-        HWARN("DS18B20_StartConversion: A conversion is already in progress.");
-        return false;
-    }
-
-    if(OneWire_Reset(ow) == false) return false;
     
-    u8 commands[2] = {ONEW_SKIP_ROM, DS18B20_CONVERT_T};
-    OneWire_Write(ow, commands, sizeof(commands));
+    if(OneWire_Reset(ow) == false) return false;
 
-    config->state = DS18B20_STATE_CONVERT_CMD_SENT;
+    if(address == ONEW_SKIP_ROM) {
+        if(OneWire_WriteByte(ow, ONEW_SKIP_ROM) == false) return false;
+    } else {
+        u8 commands[2];
+        commands[0] = ONEW_MATCH_ROM;
+        commands[1] = address;
+
+        // Not implemented, yet
+        HERROR("DS18B20_Convert(): MATCH_ROM is not implemented, yet");
+        return false;
+        
+        if(OneWire_Write(ow, commands, sizeof(commands)) == false) return false;
+    }
+    if(OneWire_WriteByte(ow, DS18B20_CONVERT_T) == false) return false;
+
+    while(OneWire_Read(ow) == 0);   // Wait for conversion to end
     return true;
 }
 
-void DS18B20_Poll(OneWire_Config_t* ow, DS18B20_Config_t* config) {
-    if(ow->status == ONEW_DMA_IN_PROGRESS) return;
+static inline b8 DS18B20_MatchRead(OneWire_Config_t* ow, DS18B20_Config_t* config) {
+    HTRACE("ds18b20.c: s:DS18B20_MatchRead(OneWire_Config_t*, DS18B20_Config_t*):b8");
 
-    switch(config->state) {
-        case DS18B20_STATE_IDLE: break;
-        case DS18B20_STATE_CONVERT_CMD_SENT:
-            HDEBUG("DS18B20_Poll(): Conversion command sent. Starting 750ms timer.");
-            config->state = DS18B20_STATE_WAITING_FOR_CONVERSION;
-            add_alarm_in_ms(750, DS18B20_ConvertCallback, config, true);
-        break;
-        case DS18B20_STATE_WAITING_FOR_CONVERSION: break;
-        case DS18B20_STATE_READY_TO_READ:
-            HDEBUG("DS18B20_Poll(): Conversion complete. Reading scratchpad.");
-            if(!OneWire_Reset(ow)) {
-                config->state = DS18B20_STATE_IDLE;
-                return;
-            }
+    if(config->length < 9) return false;
 
-            u8 commands[2] = {ONEW_SKIP_ROM, DS18B20_READ_SCRATCHPAD};
-            OneWire_Write(ow, commands, sizeof(commands));
-            config->state = DS18B20_STATE_READ_CMD_SENT;
-        break;
-        case DS18B20_STATE_READ_CMD_SENT:
-            OneWire_Read(ow, config->data, config->length);
-            config->state = DS18B20_STATE_READING_SCRATCHPAD;
-        break;
-        case DS18B20_STATE_READING_SCRATCHPAD:
-            if(!DS18B20_CRC(config->data, config->length)) HWARN("DS18B20_Poll(): CRC check failed. Data is corrupted.");
-            else {
-                i16 rawTemp = (i16)((config->data[1] << 8) | config->data[0]);
-                config->temperature = (f32)rawTemp / 16.0f;
-            }
+    u8 commands[2];
+    commands[0] = ONEW_MATCH_ROM;
+    commands[1] = config->address;
 
-            config->state = DS18B20_STATE_IDLE;
-        break;
+    // Not implemented, yet
+    HERROR("DS18B20_Convert(): MATCH_ROM is not implemented, yet");
+    return false;
+
+    if(OneWire_Reset(ow) == false) return false;
+    if(OneWire_Write(ow, commands, sizeof(commands)) == false) {
+        HDEBUG("DS18B20_MatchRead(): Failed to send commands to the sensor");
+        return false;
     }
+
+    if(OneWire_WriteByte(ow, DS18B20_READ_SCRATCHPAD) == false) {
+        HDEBUG("DS18B20_MatchRead(): Failed to send commands to the sensor");
+        return false;
+    }
+
+    // Read all 9 bytes from the sensor into the data buffer.
+    for (u8 i = 0; i < config->length; i++) config->data[i] = OneWire_Read(ow);
+    return true;
 }
 
+static inline b8 DS18B20_SkipRead(OneWire_Config_t* ow, DS18B20_Config_t* config) {
+    HTRACE("ds18b20.c: s:DS18B20_SkipRead(OneWire_Config_t*, DS18B20_Config_t*):b8");
 
-static int64_t DS18B20_ConvertCallback(alarm_id_t id, void* userData) {
-    DS18B20_Config_t* config = (DS18B20_Config_t*)userData;
-    HDEBUG("DS18B20_ConvertCallback(): Alarm fired. Ready to read temperature.");
-    
-    config->state = DS18B20_STATE_READY_TO_READ;
-    return 0;
+    if(config->length < 9) return false;
+
+    if(OneWire_Reset(ow) == false) return false;
+    if(OneWire_WriteByte(ow, ONEW_SKIP_ROM) == false) {              
+        HDEBUG("DS18B20_SkipRead(): Failed to send commands to the sensor");
+        return false;
+    }
+
+    if(OneWire_WriteByte(ow, DS18B20_READ_SCRATCHPAD) == false) {
+        HDEBUG("DS18B20_SkipRead(): Failed to send commands to the sensor");
+        return false;
+    }
+
+    // Read all 9 bytes from the sensor into the data buffer.
+    // for (u8 i = 0; i < config->length; i++) config->data[i] = OneWire_Read(ow);
+    config->data = ow->data;
+    return true;
+}
+
+u8 DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data) {
+    HTRACE("ds18b20.c: DS18B20_ReadAndProcess(OneWire_Config_t*, DS18B20_Config_t*, DS18B20_DataPacket_t*):u8");
+
+    if(DS18B20_Convert(ow, config->address) == false) {
+        HDEBUG("DS18B20_Read(): Failed to start conversion");
+        return false;
+    }
+
+    u8 result = 0;
+    if(config->address == ONEW_SKIP_ROM) result = DS18B20_SkipRead(ow, config);
+    else result = DS18B20_MatchRead(ow, config);
+
+    if(!DS18B20_CRC(config->data, config->length)) {
+        HWARN("DS18B20_Read(): CRC check failed. Data is corrupted.");
+        return false;
+    }
+
+    if(!result) return result;  // Something went wrong, early return
+
+    i16 rawTemp = (i16)((config->data[1] << 8) | config->data[0]);
+    f32 temp = (f32)rawTemp/16.0f;
+
+    data->temperature = temp;
+    data->address = ONEW_SKIP_ROM ? 0x00 : config->address;
+    return result;
 }
 
 #endif

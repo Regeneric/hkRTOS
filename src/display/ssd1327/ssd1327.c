@@ -62,7 +62,7 @@ b8 Display_Init(I2C_Config_t* i2c, DisplayConfig_t* config) {
     
     Display_WriteCommandList(initCommands, sizeof(initCommands));
     sleep_ms(100);
-    Display_WriteCommand(SSD1327_DISPLAY_ON);   // 0xAF
+    // Display_WriteCommand(SSD1327_DISPLAY_ON);   // 0xAF
 }
 
 u32 Display_WriteCommand(u8 command) {

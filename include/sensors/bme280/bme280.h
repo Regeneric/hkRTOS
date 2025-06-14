@@ -1,20 +1,63 @@
 #pragma once
 #include <defines.h>
 
-typedef enum {
+#define hkBME280_ADDRESS 0x76   // or 0x77
+
+enum {
     BME_INIT,
     BME_READ_SUCCESS,
     BME_READ_IN_PROGRESS,
-    BME_READ_BAD_CHECKSUM
-} DHT_Status_t;
+    BME_READ_BAD_CHECKSUM,
+    BME_REG_CALIB_00  = 0x88,
+    BME_REG_CALIB_26  = 0xE1,
+    BME_REG_CTRL_HUM  = 0xF2,
+    BME_REG_CTRL_MEAS = 0xF4,
+    BME_REG_CONFIG    = 0xF5
+};
 
-typedef struct BME_Config_t {
-    u8     gpio;
-    u8*    data;
+// It's all defined by the datasheet
+typedef struct BME280_CalibrationParams_t {
+    u16 dig_T1;
+    i16 dig_T2;
+    i16 dig_T3;
+
+    u16 dig_P1;
+    i16 dig_P2;
+    i16 dig_P3;
+    i16 dig_P4;
+    i16 dig_P5;
+    i16 dig_P6;
+    i16 dig_P7;
+    i16 dig_P8;
+    i16 dig_P9;
+
+    u8  dig_H1;
+    i16 dig_H2;
+    u8  dig_H3;
+    i16 dig_H4;
+    i16 dig_H5;
+    i8  dig_H6;
+} BME280_CalibrationParams_t;
+
+typedef struct BME280_Config_t {
+    u8*    rawData;
     size_t length;
-    void*  queue;
-    vu8    status;
-} BME_Config_t;
+    vu16   status;
+    BME280_CalibrationParams_t params;
+} BME280_Config_t;
 
-void BME_Init(BME_Config_t* config);
-b8   BME_Read(BME_Config_t* config);
+// I know it's redundant, I just want to have some universal pattern around my code
+typedef char* (*json)(const void* self);
+typedef struct BME280_DataPacket_t {
+    f32  pressure;
+    f32  temperature;
+    f32  humidity;
+    json jsonify;
+} BME280_DataPacket_t;
+
+u32  BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config);
+void BME280_InitRead(I2C_Config_t* i2c, BME280_Config_t* config);
+void BME280_Read(I2C_Config_t* i2c, BME280_Config_t* config);
+void BME280_ProcessData(BME280_Config_t* config, BME280_DataPacket_t* data);
+
+u32 BME280_WriteCommand(I2C_Config_t* i2c, BME280_Config_t* config, u8 command);

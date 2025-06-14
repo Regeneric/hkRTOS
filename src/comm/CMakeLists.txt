@@ -5,6 +5,7 @@ add_library(libcomm
     STATIC
         i2c.c
         uart_dma.c
+        dma_irq_handler.c
 )
 
 

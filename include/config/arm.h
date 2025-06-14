@@ -64,6 +64,7 @@
         #define hkUART_TX               8                               // TX GPIO PIN
         #define hkUART_RX               9                               // RX GPIO PIN
         #define hkUART_BAUDRATE         9600                            // Bps
+        #define hkUART_DMA_IRQ          DMA_IRQ_1                       // Which DMA IRQ to use
     #else
 
     #endif
@@ -91,6 +92,15 @@
     #if hkBME280_USE_SENSOR
         #define hkBME280_USE_I2C        true                            // true - i2c ; false - spi
     #endif
+    #define hkSGP30_USE_SENSOR          true                            // Decide if we want to use SGP30
+    #if hkSGP30_USE_SENSOR
+        #define hkSGP30_ADDRESS         0x58                            // i2c address
+    #endif
+    #define hkPMS5003_USE_SENSOR        true                            // Decide if we want to use PMS5003
+    #if hkPMS5003_USE_SENSOR
+        #define hkPMS5003aaa
+    #endif
+
 
     // Storage
     #define hkEEPROM_24LC01B            true                            // 1Kb   (128B) I2C EEPROM

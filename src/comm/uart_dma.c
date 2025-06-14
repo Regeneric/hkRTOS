@@ -6,6 +6,7 @@
 
 #include <core/logger.h>
 #include <comm/uart.h>
+#include <comm/dma_irq_handler.h>
 
 
 static u32 sgUART_DMA_Channel = 0;
@@ -26,8 +27,7 @@ static void UART_DMA_Init(const UART_Config_t* uart) {
     channel_config_set_dreq(&cfg, uart_get_dreq_num(uart->uart, false));
 
     dma_channel_configure(sgUART_DMA_Channel, &cfg, NULL, &uart_get_hw(uart->uart)->dr, uart->packetSize, false);
-    irq_set_exclusive_handler(DMA_IRQ_1, UART_DMA_ISR);
-    irq_set_enabled(DMA_IRQ_1, true);
+    DMA_UART_Register(uart, sgUART_DMA_Channel);
     dma_channel_set_irq1_enabled(sgUART_DMA_Channel, true);
 
     return;
@@ -63,9 +63,4 @@ void UART_ReadPacket(UART_Config_t* config) {
     sgUART_Config->status = UART_DATA_RX_IN_PROGRESS;
     dma_channel_set_write_addr(sgUART_DMA_Channel, config->data, true);
     return;
-}
-
-static void UART_DMA_ISR() {
-    sgUART_Config->status = UART_DATA_RX_SUCCESS;
-    dma_hw->ints1 = (1u << sgUART_DMA_Channel);
 }

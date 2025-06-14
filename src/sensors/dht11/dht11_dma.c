@@ -6,6 +6,7 @@
 #include <hardware/dma.h>
 #include <hardware/irq.h>
 
+#include <comm/dma_irq_handler.h>
 #include <core/logger.h>
 #include <sensors/sensors.h>
 #include <sensors/dht11/dht11.h>
@@ -15,24 +16,6 @@
 static u32 sgDHT11_SM_Offset = 0;
 static u32 sgDHT11_DMA_Channel = 0;
 static DHT_Config_t* sgDHT11_Config = NULL;
-
-static void DHT11_DMA_ISR();
-static void DHT11_DMA_Init(const DHT_Config_t* config);
-
-void DHT11_Init(DHT_Config_t* config) {
-    HTRACE("dht11_dma.c -> DHT11_Init(DHT_Config_t*):void");
-
-    if(config->status == DHT_INIT) HINFO("Reinitalizing DHT sensor...");
-
-    sgDHT11_SM_Offset = pio_add_program(config->pio, &dht11_program);
-    dht11_program_init(config->pio, config->sm, sgDHT11_SM_Offset, config->gpio);
-    
-    DHT11_DMA_Init(config);
-    sgDHT11_Config = config;
-
-    config->status = DHT_READ_SUCCESS;
-    return;
-}
 
 static void DHT11_DMA_Init(const DHT_Config_t* config) {
     HTRACE("dht11_dma.c -> s:DHT11_DMA_Init(DHT_Config_t*):void");
@@ -48,10 +31,27 @@ static void DHT11_DMA_Init(const DHT_Config_t* config) {
     channel_config_set_dreq(&cfg, dreq);
 
     dma_channel_configure(sgDHT11_DMA_Channel, &cfg, NULL, &config->pio->rxf[config->sm], 5, false);
-    irq_set_exclusive_handler(hkDHT_DMA_IRQ, DHT11_DMA_ISR);
-    irq_set_enabled(hkDHT_DMA_IRQ, true);
-    dma_channel_set_irq0_enabled(sgDHT11_DMA_Channel, true);
+    DMA_DHT_Register(config, sgDHT11_DMA_Channel);
 
+    if(hkDHT_DMA_IRQ == DMA_IRQ_0) dma_channel_set_irq0_enabled(sgDHT11_DMA_Channel, true);
+    else dma_channel_set_irq1_enabled(sgDHT11_DMA_Channel, true);
+
+    return;
+}
+
+
+void DHT11_Init(DHT_Config_t* config) {
+    HTRACE("dht11_dma.c -> DHT11_Init(DHT_Config_t*):void");
+
+    if(config->status == DHT_INIT) HINFO("Reinitalizing DHT sensor...");
+
+    sgDHT11_SM_Offset = pio_add_program(config->pio, &dht11_program);
+    dht11_program_init(config->pio, config->sm, sgDHT11_SM_Offset, config->gpio);
+    
+    DHT11_DMA_Init(config);
+    sgDHT11_Config = config;
+
+    config->status = DHT_READ_SUCCESS;
     return;
 }
 
@@ -77,11 +77,5 @@ b8 DHT11_Read(DHT_Config_t* config) {
     pio_sm_put_blocking(config->pio, config->sm, 30U);      // 30us delay
 
     return true;
-}
-
-
-static inline void DHT11_DMA_ISR() {
-    sgDHT11_Config->status = DHT_READ_SUCCESS;
-    dma_hw->ints0 = (1u << sgDHT11_DMA_Channel);    // Clears the interrupt from the DMA
 }
 #endif
