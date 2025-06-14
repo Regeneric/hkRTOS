@@ -8,11 +8,20 @@
 u32 BME280_WriteCommands(I2C_Config_t* i2c, BME280_Config_t* config, u8* commands, size_t len) {
     HTRACE("bme280.c -> BME280_WriteCommand(I2C_Config_t*, BME280_Config_t*, u8*, size_t):u32");
 
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_WriteCommands(): Mutex acquired");
+
     u32 status = i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, len, false);
     if(status == PICO_ERROR_GENERIC) {
         HDEBUG("BME280_WriteCommand(): Couldn't write data to device at address: 0x%x", hkBME280_ADDRESS);
+        mutex_exit(i2c->mutex);
+        HTRACE("BME280_WriteCommands(): Mutex released");
         return false;
-    } else return status;
+    } 
+    
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_WriteCommands(): Mutex released");
+    return status;
 }
 
 // Official Bosch implementation
@@ -66,12 +75,19 @@ static u32 BME280_CompensateHumidity(i32 adcH, BME280_Config_t* config) {
 
 static void BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* config) {
     HTRACE("bme280.c -> BME280_ReadCalibrationData(I2C_Config_t*, BME280_Config_t*):u32");
+    
     u8 buffer[26];
     u8 commands[1]; commands[0] = BME_REG_CALIB_00;
 
     // First block of calibration data
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_ReadCalibrationData(): Mutex acquired");
+
     i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, 1, true);
     i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, buffer, 26, false);
+
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_ReadCalibrationData(): Mutex released");
 
     config->params.dig_T1 = (buffer[1]  << 8) | buffer[0];
     config->params.dig_T2 = (buffer[3]  << 8) | buffer[2];
@@ -90,8 +106,15 @@ static void BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* confi
     // Second block of calibration data
     config->params.dig_H1 = buffer[25];
     commands[0] = BME_REG_CALIB_26;
+
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_ReadCalibrationData(): Mutex acquired");
+
     i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, 1, true);
     i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, buffer, 7, false);
+
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_ReadCalibrationData(): Mutex released");
 
     config->params.dig_H2 = (buffer[1] << 8) | buffer[0];
     config->params.dig_H3 =  buffer[2];
@@ -112,6 +135,9 @@ u32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config) {
 
     // TODO: oversamplig, operating mode etc. should be read from config
     // Humidity
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("BME280_Init(): Mutex acquired");
+
     u8 commands[2];
     commands[0] = BME_REG_CTRL_HUM;
     commands[1] = 0x02;  // Oversampling x2
@@ -126,6 +152,9 @@ u32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config) {
     commands[0] = BME_REG_CTRL_MEAS;
     commands[1] = 0x49;
     i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_Init(): Mutex released");
 
     HINFO("BME280 has been configured");
     return true;
@@ -136,18 +165,30 @@ void BME280_InitRead(I2C_Config_t* i2c, BME280_Config_t* config) {
 
     if(config->status == BME_READ_IN_PROGRESS) return; 
     config->status = BME_READ_IN_PROGRESS;
-    
+
+    mutex_enter_blocking(i2c->mutex);     
+    HTRACE("BME280_InitRead(): Mutex acquired");
+
     u8 commands[2] = {BME_REG_CTRL_MEAS, 0x49};
     i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, commands, sizeof(commands), false);
+    
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_InitRead(): Mutex released");
 }
 
 void BME280_Read(I2C_Config_t* i2c, BME280_Config_t* config) {
     HTRACE("bme280.c -> BME280_Read(I2C_Config_t*, BME280_Config_t*):void");
 
+    mutex_enter_blocking(i2c->mutex); 
+    HTRACE("BME280_Read(): Mutex acquired");
+
     uint8_t reg = 0xF7;
     i2c_write_blocking(i2c->i2c, hkBME280_ADDRESS, &reg, 1, true);
     i2c_read_blocking(i2c->i2c, hkBME280_ADDRESS, config->rawData, 8, false);
     
+    mutex_exit(i2c->mutex);
+    HTRACE("BME280_Read(): Mutex released");
+
     config->status = BME_READ_SUCCESS;
 }
 

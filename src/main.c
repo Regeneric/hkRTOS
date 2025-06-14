@@ -5,7 +5,9 @@
 #include <pico/stdlib.h>
 #include <pico/stdio.h>
 #include <pico/multicore.h>
+#include <pico/util/queue.h>
 #include <pico/cyw43_arch.h>
+#include <pico/sync.h>
 #include <hardware/pio.h>
 
 // FreeRTOS
@@ -44,11 +46,19 @@
 
 static DHT_Config_t hkDHT11;
 static UART_Config_t uart;
-static I2C_Config_t  i2c;
+static I2C_Config_t  hkI2C0;
+static I2C_Config_t  hkI2C1;
 static PMS5003_Config_t hkPMS5003;
 static DS18B20_Config_t hkDS18B20;
 static SGP30_Config_t   hkSGP30;
 static BME280_Config_t  hkBME280;
+
+static mutex_t hkI2C0_Mutex;
+static mutex_t hkI2C1_Mutex;
+
+
+queue_t displayDataQueue;
+extern void hkDisplayLoop();
 
 static bool DHT11_Timer_ISR(struct repeating_timer* t) {
     DHT11_Read(&hkDHT11);
@@ -66,34 +76,34 @@ static bool DS18B20_Timer_ISR(struct repeating_timer* t) {
 }
 
 static i64 SGP30_Read_Callback(alarm_id_t id, void* data) {
-    SGP30_Read(&i2c, &hkSGP30);
+    SGP30_Read(&hkI2C0, &hkSGP30);
     return false;
 }
 
 static bool SGP30_Timer_ISR(struct repeating_timer* t) {
-    SGP30_InitRead(&i2c, &hkSGP30);
+    SGP30_InitRead(&hkI2C0, &hkSGP30);
     add_alarm_in_ms(15, SGP30_Read_Callback, NULL, true);
     return true;
 }
 
 static i64 SGP30_Baseline_Callback(alarm_id_t id, void* data) {
-    SGP30_GetBaseline(&i2c, &hkSGP30);
+    SGP30_GetBaseline(&hkI2C0, &hkSGP30);
     return false;
 }
 
 static bool SGP30_Baseline_Timer_ISR(struct repeating_timer* t) {
-    SGP30_InitGetBaseline(&i2c, &hkSGP30);
+    SGP30_InitGetBaseline(&hkI2C0, &hkSGP30);
     add_alarm_in_ms(15, SGP30_Baseline_Callback, NULL, true);
     return true;
 }
 
 static i64 BME280_Read_Callback(alarm_id_t id, void* data) {
-    BME280_Read(&i2c, &hkBME280);
+    BME280_Read(&hkI2C0, &hkBME280);
     return false;
 }
 
 static bool BME280_Timer_ISR(struct repeating_timer* t) {
-    BME280_InitRead(&i2c, &hkBME280);
+    BME280_InitRead(&hkI2C0, &hkBME280);
     add_alarm_in_ms(15, BME280_Read_Callback, NULL, true);
     return true;
 }
@@ -103,13 +113,21 @@ void main(void) {
     stdio_init_all();
     DMA_Master_Init();
 
-    // I2C_Config_t i2c = {
-        i2c.i2c   = hkI2C;
-        i2c.scl   = hkI2C_SCL;
-        i2c.sda   = hkI2C_SDA;
-        i2c.speed = hkI2C_SPEED;
-    // }; 
-    I2C_Init(&i2c);
+    mutex_init(&hkI2C0_Mutex);
+    hkI2C0.i2c   = hkI2C_ONE;
+    hkI2C0.scl   = hkI2C_SCL_ONE;
+    hkI2C0.sda   = hkI2C_SDA_ONE;
+    hkI2C0.speed = hkI2C_SPEED_ONE;
+    hkI2C0.mutex = &hkI2C0_Mutex;
+    I2C_Init(&hkI2C0);
+
+    mutex_init(&hkI2C1_Mutex);
+    hkI2C1.i2c   = hkI2C_TWO;
+    hkI2C1.scl   = hkI2C_SCL_TWO;
+    hkI2C1.sda   = hkI2C_SDA_TWO;
+    hkI2C1.speed = hkI2C_SPEED_TWO;
+    hkI2C1.mutex = &hkI2C1_Mutex;
+    I2C_Init(&hkI2C1);
 
     DisplayConfig_t hkSSD1327 = {
         .width    = 128,
@@ -117,7 +135,7 @@ void main(void) {
         .address  = SSD1327_ADDRESS,
         .textSize = 1,
         .status   = DISP_DRAW
-    }; Display_Init(&i2c, &hkSSD1327);
+    }; Display_Init(&hkI2C1, &hkSSD1327);
 
 
     // static UART_Config_t uart;
@@ -154,17 +172,15 @@ void main(void) {
     }; OneWire_Init(&ow0);
 
     static u8 hkDS18B20_RawData[9];
-    // DS18B20_Config_t hkDS18B20 = {
-        // .address     = 0x2836C7BE000000B6
-        hkDS18B20.address     = ONEW_SKIP_ROM;
-        hkDS18B20.data        = hkDS18B20_RawData;
-        hkDS18B20.length      = sizeof(hkDS18B20_RawData);
-        hkDS18B20.queue       = NULL;
-        hkDS18B20.temperature = 0.0f;
-        hkDS18B20.dataCount   = 0;
-        hkDS18B20.state       = DS18B20_STATE_IDLE;
-        hkDS18B20.convertStartTime = 0;
-    // }; 
+    // .address     = 0x2836C7BE000000B6
+    hkDS18B20.address     = ONEW_SKIP_ROM;
+    hkDS18B20.data        = hkDS18B20_RawData;
+    hkDS18B20.length      = sizeof(hkDS18B20_RawData);
+    hkDS18B20.queue       = NULL;
+    hkDS18B20.temperature = 0.0f;
+    hkDS18B20.dataCount   = 0;
+    hkDS18B20.state       = DS18B20_STATE_IDLE;
+    hkDS18B20.convertStartTime = 0;
     DS18B20_SetResolution(&ow0, 11);
 
     DS18B20_DataPacket_t hkDS18B20_Data = {
@@ -197,7 +213,7 @@ void main(void) {
     hkSGP30.status  = hkSGP_INIT;
     hkSGP30.eco2Baseline = 0;
     hkSGP30.tvocBaseline = 0;
-    SGP30_Init(&i2c, &hkSGP30);
+    SGP30_Init(&hkI2C0, &hkSGP30);
 
     SGP30_DataPacket_t hkSGP30_Data = {
         .eco2 = 0,
@@ -210,7 +226,7 @@ void main(void) {
     hkBME280.rawData = hkBME280_RawData;
     hkBME280.length  = sizeof(hkBME280_RawData);
     hkBME280.status  = BME_INIT;
-    BME280_Init(&i2c, &hkBME280);
+    BME280_Init(&hkI2C0, &hkBME280);
 
     BME280_DataPacket_t hkBME280_Data = {
         .humidity = 0.0f,
@@ -233,63 +249,10 @@ void main(void) {
     // add_repeating_timer_ms(-1500, SGP30_Baseline_Timer_ISR, NULL, &hkSGP30_Baseline_Timer);
     add_repeating_timer_ms(-1200, BME280_Timer_ISR, NULL, &hkBME280_Timer);
 
-    // hkDrawTestPattern();    // Display test pattern
-    char buffer[64];
-    
 
-    static u8 DS18B20_GraphHistory[MAX_GRAPH_WIDTH];
-    GraphConfig_t DS18B20_Graph = {
-        .x = 5,         // Start X point
-        .width = 118,   // End X point
-        .y = 10,         // Start Y point
-        .height = 50,   // End Y point  
-        .minVal = 10.0,
-        .maxVal = 50.0,
-        .colour = 15,
-        .borderColour = 15,
-        .legendColour = 4,
-        .cursorX = 0,
-        .history = DS18B20_GraphHistory,
-        .length  = sizeof(DS18B20_GraphHistory)
-    }; hkGraphInit(&DS18B20_Graph);
-
-    // static u8 PMS5003_2_5_GraphHistory[MAX_GRAPH_WIDTH];
-    // GraphConfig_t PMS5003_PM2_5_Graph = {
-    //     .x = 5,         // Start X point
-    //     .width = 118,   // End X point
-    //     .y = 73,        // Start Y point
-    //     .height = 50,   // End Y point   
-    //     .minVal = 0.0,
-    //     .maxVal = 150.0,
-    //     .colour = 10,
-    //     .borderColour = 10,
-    //     .legendColour = 4,
-    //     .cursorX = 0,
-    //     .history = PMS5003_2_5_GraphHistory,
-    //     .length  = sizeof(PMS5003_2_5_GraphHistory)
-    // }; hkGraphInit(&PMS5003_PM2_5_Graph);
-
-    static u8 SGP30_ECO2_GraphHistory[MAX_GRAPH_WIDTH];
-    GraphConfig_t SGP30_Graph = {
-        .x = 5,         // Start X point
-        .width = 118,   // End X point
-        .y = 73,        // Start Y point
-        .height = 50,   // End Y point   
-        .minVal = 400.0,
-        .maxVal = 1500.0,
-        .colour = 10,
-        .borderColour = 10,
-        .legendColour = 4,
-        .cursorX = 0,
-        .history = SGP30_ECO2_GraphHistory,
-        .length  = sizeof(SGP30_ECO2_GraphHistory)
-    }; hkGraphInit(&SGP30_Graph);
-
-    hkClearBuffer();
-    hkGraphDrawAxes(&DS18B20_Graph);
-    // hkGraphDrawAxes(&PMS5003_PM2_5_Graph);
-    hkGraphDrawAxes(&SGP30_Graph);
-    hkDisplay();
+    queue_init(&displayDataQueue, sizeof(Sensors_DataPacket_t), 2);
+    multicore_launch_core1(hkDisplayLoop);
+    HINFO("[CORE1]: Core started for display rendering");
 
     while(FOREVER) {
         DS18B20_ReadAndProcess(&ow0, &hkDS18B20, &hkDS18B20_Data);
@@ -340,29 +303,18 @@ void main(void) {
         }
 
         if(hkSSD1327.status == DISP_DRAW) {
-            hkClearBuffer();
-
-            hkGraphAddDataPoint(&DS18B20_Graph, hkDS18B20_Data.temperature);
-            // hkGraphAddDataPoint(&PMS5003_PM2_5_Graph, (f32)hkPMS5003_Data.pm2_5);
-            hkGraphAddDataPoint(&SGP30_Graph, hkSGP30_Data.eco2);
+            Sensors_DataPacket_t dataToDisplay;
             
-            hkGraphDrawAxes(&DS18B20_Graph);
-            hkGraphDrawLegend(&DS18B20_Graph, "TEMP (C)");
+            dataToDisplay.dht = hkDHT11_Data;
+            dataToDisplay.ds18b20 = hkDS18B20_Data;
+            dataToDisplay.pms5003 = hkPMS5003_Data;
+            dataToDisplay.sgp30   = hkSGP30_Data;
+            dataToDisplay.bme280  = hkBME280_Data;
 
-            // hkGraphDrawAxes(&PMS5003_PM2_5_Graph);
-            // hkGraphDrawLegend(&PMS5003_PM2_5_Graph, "PM2.5");
-
-            hkGraphDrawAxes(&SGP30_Graph);
-            hkGraphDrawLegend(&SGP30_Graph, "eCO2");
-
-            hkGraphDraw(&DS18B20_Graph);
-            // hkGraphDraw(&PMS5003_PM2_5_Graph);
-            hkGraphDraw(&SGP30_Graph);
-
-            hkDisplay();
+            queue_try_add(&displayDataQueue, &dataToDisplay);
         }
 
         printf("\n");
-        sleep_ms(1000);
+        // sleep_ms(1000);
     }
 }

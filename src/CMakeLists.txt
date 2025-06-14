@@ -6,6 +6,7 @@ add_subdirectory(display)
 
 add_executable(${PROJECT_NAME}
     main.c
+    render_display.c
 )
 
 target_include_directories(${PROJECT_NAME} 
@@ -30,7 +31,8 @@ target_link_libraries(${PROJECT_NAME}
         pico_stdio
         pico_cyw43_arch_lwip_threadsafe_background
         # pico_cyw43_arch_lwip_sys_freertos
-        # pico_multicore
+        pico_multicore
+        pico_sync
 
         hardware_pio
         # hardware_gpio

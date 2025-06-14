@@ -21,12 +21,21 @@ static u8 SGP30_CRC(u8* data, u8 len) {
 u32 SGP30_WriteCommand(I2C_Config_t* i2c, SGP30_Config_t* config, u8 command) {
     HTRACE("sgp30.c -> SGP30_WriteCommand(I2C_Config_t*, SGP30_Config_t*, u8):u32");
 
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("SGP30_WriteCommand(): Mutex acquired");
+
     const u8 commands[2] = {0x20, command};
     u32 status = i2c_write_blocking(i2c->i2c, hkSGP30_ADDRESS, commands, sizeof(commands), false);
     if(status == PICO_ERROR_GENERIC) {
         HDEBUG("SGP30_Init(): Couldn't write data to device at address: 0x%x", hkSGP30_ADDRESS);
+        mutex_exit(i2c->mutex);
+        HTRACE("SGP30_WriteCommand(): Mutex released");
         return false;
-    } else return status;
+    } 
+
+    mutex_exit(i2c->mutex);
+    HTRACE("SGP30_WriteCommand(): Mutex released");
+    return status;
 }
 
 u32 SGP30_Init(I2C_Config_t* i2c, SGP30_Config_t* config) {
@@ -52,10 +61,19 @@ void SGP30_InitRead(I2C_Config_t* i2c, SGP30_Config_t* config) {
 void SGP30_Read(I2C_Config_t* i2c, SGP30_Config_t* config) {
     HTRACE("sgp30.c -> SGP30_Read(I2C_Config_t*, SGP30_Config_t*):void");
 
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("SGP30_Read(): Mutex acquired");
+
     if(i2c_read_blocking(i2c->i2c, hkSGP30_ADDRESS, config->rawData, config->length, false) == 0) {
         HWARN("SGP30_Read(): Could not start sensor data read");
+        mutex_exit(i2c->mutex);
+        HTRACE("SGP30_Read(): Mutex released");
         return;
-    } config->status = hkSGP_READY;
+    } 
+
+    mutex_exit(i2c->mutex);
+    HTRACE("SGP30_Read(): Mutex released");
+    config->status = hkSGP_READY;
 }
 
 void SGP30_ProcessData(SGP30_Config_t* config, SGP30_DataPacket_t* data) {
@@ -92,10 +110,17 @@ void SGP30_InitGetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config) {
 b8 SGP30_GetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config) {
     HTRACE("sgp30.c -> SGP30_GetBaseline(I2C_Config_t*, SGP30_Config_t*):b8");
 
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("SGP30_GetBaseline(): Mutex acquired");
+
     if(i2c_read_blocking(i2c->i2c, hkSGP30_ADDRESS, baselineData, sizeof(baselineData), false) == 0) {
         HWARN("SGP30_GetBaseline(): Could not get baseline from sensor");
+        mutex_exit(i2c->mutex);
+        HTRACE("SGP30_GetBaseline(): Mutex released");
         return false;
     } 
+    mutex_exit(i2c->mutex);
+    HTRACE("SGP30_GetBaseline(): Mutex released");
     
     config->status = hkSGP_BASELINE_READY;
     return true;

@@ -34,8 +34,12 @@ b8 EEPROM_Write(const void* config, const void* packet) {
     }
 
     // Init write
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("EEPROM_Write(): Mutex acquired");
+
     if(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, &address, 1, true) != 1) {
         HDEBUG("EEPROM_Write(): Failed to send control signal to: 0x%x", EEPROM_ADDR);
+        mutex_exit(i2c->mutex);
         return false;
     }
 
@@ -46,9 +50,14 @@ b8 EEPROM_Write(const void* config, const void* packet) {
 
     if(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, buffer, (1+data->size), false) != (1+data->size)) {
         HDEBUG("EEPROM_Write(): Failed to write data to: 0x%x ; 0x%x", EEPROM_ADDR, address);
+        mutex_exit(i2c->mutex);
+        HTRACE("EEPROM_Write(): Mutex released");
         return false;
-    }
-    
+    } 
+
+    mutex_exit(i2c->mutex);
+    HTRACE("EEPROM_Write(): Mutex released");
+
     // Wait for ACK so we're sure that data write is complete
     // while(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, &address, 1, false) != 1);
     sleep_ms(6);
@@ -63,20 +72,29 @@ b8 EEPROM_Read(const void* config, void* packet) {
     u8 address = (u8)data->address;
 
     if(hkEEPROM_24FC01 == false && i2c->speed > 400) {
-        HERROR("EEPROM_Write(): Clock faster than %u KHz is supported only on 24FC01", i2c->speed);
+        HERROR("EEPROM_Read(): Clock faster than %u KHz is supported only on 24FC01", i2c->speed);
         return false;
     } 
+    
+    mutex_enter_blocking(i2c->mutex);
+    HTRACE("EEPROM_Read(): Mutex acquired");
 
     if(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, &address, 1, true) != 1) {
-        HDEBUG("EEPROM_Write(): Failed to send control signal to: 0x%x", EEPROM_ADDR);
+        HDEBUG("EEPROM_Read(): Failed to send control signal to: 0x%x", EEPROM_ADDR);
+        mutex_exit(i2c->mutex);
+        HTRACE("EEPROM_Read(): Mutex released");
         return false;
     }
 
     if(i2c_read_blocking(i2c->i2c, EEPROM_ADDR, data->data, data->size, false) != data->size) {
-        HDEBUG("EEPROM_Write(): Failed to read data from: 0x%x ; 0x%x", EEPROM_ADDR, address);
+        HDEBUG("EEPROM_Read(): Failed to read data from: 0x%x ; 0x%x", EEPROM_ADDR, address);
+        mutex_exit(i2c->mutex);
+        HTRACE("EEPROM_Read(): Mutex released");
         return false;
-    } 
-    
+    }
+
+    mutex_exit(i2c->mutex); 
+    HTRACE("EEPROM_Read(): Mutex released");
     return true;
 }
 #endif

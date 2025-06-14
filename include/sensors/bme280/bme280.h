@@ -1,5 +1,6 @@
 #pragma once
 #include <defines.h>
+#include <pico/sync.h>
 
 #define hkBME280_ADDRESS 0x76   // or 0x77
 

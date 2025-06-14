@@ -52,6 +52,10 @@
         "font_5_7.h": "c",
         "ssd1327_config.h": "c",
         "functional": "c",
-        "pms5003.h": "c"
+        "pms5003.h": "c",
+        "wifi.h": "c",
+        "bme280.h": "c",
+        "sgp30.h": "c",
+        "queue.h": "c"
     }
 }

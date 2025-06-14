@@ -62,7 +62,7 @@ b8 Display_Init(I2C_Config_t* i2c, DisplayConfig_t* config) {
     
     Display_WriteCommandList(initCommands, sizeof(initCommands));
     sleep_ms(100);
-    // Display_WriteCommand(SSD1327_DISPLAY_ON);   // 0xAF
+    Display_WriteCommand(SSD1327_DISPLAY_ON);   // 0xAF
 }
 
 u32 Display_WriteCommand(u8 command) {
@@ -77,11 +77,20 @@ u32 Display_WriteCommand(u8 command) {
     buffer[0] = 0x00;   // Control Byte: the following data is a command
     buffer[1] = command;
 
+    mutex_enter_blocking(sgI2C->mutex);
+    HTRACE("Display_WriteCommand(): Mutex acquired");
+
     u32 status = i2c_write_blocking(sgI2C->i2c, SSD1327_ADDRESS, buffer, sizeof(buffer), false);
     if(status == PICO_ERROR_GENERIC) {
         HDEBUG("Display_WriteCommand(): Couldn't write data to device at address: 0x%x", SSD1327_ADDRESS);
+        mutex_exit(sgI2C->mutex);
+        HTRACE("Display_WriteCommand(): Mutex released");
         return false;
-    } else return status;
+    } 
+    
+    mutex_exit(sgI2C->mutex);
+    HTRACE("Display_WriteCommand(): Mutex released");
+    return status;
 }
 
 u32 Display_WriteCommandList(const u8* commands, size_t len) {
@@ -96,18 +105,27 @@ u32 Display_WriteCommandList(const u8* commands, size_t len) {
     buffer[0] = 0x00;   // Control Byte: the following data is a command
     memcpy(buffer+1, commands, len);
 
+    mutex_enter_blocking(sgI2C->mutex);
+    HTRACE("Display_WriteCommandList(): Mutex acquired");
+    
     u32 status = i2c_write_blocking(sgI2C->i2c, SSD1327_ADDRESS, buffer, sizeof(buffer), false);
     if(status == PICO_ERROR_GENERIC) {
-        HDEBUG("Display_WriteCommandList(): Couldn't write data to device at address: 0x%x", SSD1327_ADDRESS);
+        HWARN("Display_WriteCommandList(): Couldn't write data to device at address: 0x%x", SSD1327_ADDRESS);
+        mutex_exit(sgI2C->mutex);
+        HTRACE("Display_WriteCommandList(): Mutex released");
         return false;
-    } else return status;
+    } 
+    
+    mutex_exit(sgI2C->mutex);
+    HTRACE("Display_WriteCommandList(): Mutex released");
+    return status;
 }
 
 u32 Display_WriteData(const u8* data, size_t len) {
     HTRACE("ssd1327.c -> Display_WriteData(u8*, size_t):b8");
 
     if(sgI2C == NULL) {
-        HWARN("SH1107_WriteCommandList(): I2C instance is not initialized!");
+        HWARN("Display_WriteData(): I2C instance is not initialized!");
         return false;
     }
 
@@ -115,11 +133,20 @@ u32 Display_WriteData(const u8* data, size_t len) {
     buffer[0] = 0x40;   // Control Byte: the following data is a pixel
     memcpy(buffer+1, data, len);
 
+    mutex_enter_blocking(sgI2C->mutex);
+    HTRACE("Display_WriteData(): Mutex acquired");
+
     u32 status = i2c_write_blocking(sgI2C->i2c, SSD1327_ADDRESS, buffer, sizeof(buffer), false);
     if(status == PICO_ERROR_GENERIC) {
-        HDEBUG("Display_WriteData(): Couldn't write data to device at address: 0x%x", SSD1327_ADDRESS);
+        HWARN("Display_WriteData(): Couldn't write data to device at address: 0x%x", SSD1327_ADDRESS);
+        mutex_exit(sgI2C->mutex);
+        HTRACE("Display_WriteData(): Mutex released");
         return false;
-    } else return status;
+    } 
+    
+    mutex_exit(sgI2C->mutex);
+    HTRACE("Display_WriteData(): Mutex released");
+    return status;
 }
 
 #endif
