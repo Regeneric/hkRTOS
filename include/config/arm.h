@@ -112,7 +112,9 @@
     #if hkKY40_ENCODER
         #define hkKY40_CLK_PIN          16                              // CLK GPIO PIN
         #define hkKY40_DT_PIN           17                              // DT GPIO PIN
-        #define hkKY40_BTN_PIN          18                              // Button GPIO PIN
+        #define hkKY40_BTN_PIN          20                              // Button GPIO PIN
+        #define hkKY40_ENCODERS_COUNT   1                               // How many encoders will be used in a project
+        #define hkKY40_GET              -1                              // Helper define for KY40_Position() function
     #endif
 
     // Debugging

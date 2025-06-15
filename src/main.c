@@ -199,7 +199,7 @@ void main(void) {
         .humidity = 0.0f,
         .pressure = 0.0f,
         .temperature = 0.0f,
-        .jsonify = NULL
+        .jsonify = BME280_Jsonify
     };
 
     struct repeating_timer hkDHT11_Timer;
@@ -220,12 +220,6 @@ void main(void) {
     queue_init(&displayDataQueue, sizeof(Sensors_DataPacket_t), 2);
     multicore_launch_core1(hkDisplayLoop);
     HINFO("[CORE1]: Core started for display rendering");
-
-    KY40_Config_t hkKY40 = {
-        .clk = 16,
-        .dt  = 17,
-        .position = 0
-    }; KY40_Init(&hkKY40);
 
     while(FOREVER) {
         DS18B20_ReadAndProcess(&ow0, &hkDS18B20, &hkDS18B20_Data);
@@ -273,12 +267,13 @@ void main(void) {
             HDEBUG("[BME280 ] TEMP: %.2f*C", hkBME280_Data.temperature);
             HDEBUG("[BME280 ] HUMI: %.2f%%", hkBME280_Data.humidity);
             HDEBUG("[BME280 ] PRESS: %.1f hPa", hkBME280_Data.pressure);
+            char* hkBME280_Json = hkBME280_Data.jsonify(&hkBME280_Data);
         }
 
         if(hkSSD1327.status == DISP_DRAW) {
             Sensors_DataPacket_t dataToDisplay;
             
-            dataToDisplay.dht = hkDHT11_Data;
+            dataToDisplay.dht     = hkDHT11_Data;
             dataToDisplay.ds18b20 = hkDS18B20_Data;
             dataToDisplay.pms5003 = hkPMS5003_Data;
             dataToDisplay.sgp30   = hkSGP30_Data;
@@ -287,10 +282,8 @@ void main(void) {
             queue_try_add(&displayDataQueue, &dataToDisplay);
         }
 
-        HDEBUG("POSITION: %d", hkKY40.position);
-
         printf("\n");
-        sleep_ms(1000);
+        // sleep_ms(1000);
     }
 }
 

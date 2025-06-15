@@ -4,7 +4,7 @@
 #include <pico/sync.h>
 
 #define hkBME280_ADDRESS    0x76   // or 0x77
-#define hkBM280_JSON_BUFFER 64
+#define hkBM280_JSON_BUFFER 96
 
 enum {
     BME_INIT,
@@ -82,7 +82,7 @@ static char* BME280_Jsonify(const void* self) {
     static char buffer[hkBM280_JSON_BUFFER];
     u32 requiredLength = snprintf(buffer, sizeof(buffer), json, data->pressure, data->temperature, data->humidity);
     if(requiredLength > sizeof(buffer)) {
-        HERROR("[SGP30] Buffer size is to small to send this data packet!\n");
+        HERROR("BME280_Jsonify(): [BME280] Buffer size is to small to send this data packet!\n");
         return NULL;
     }
 

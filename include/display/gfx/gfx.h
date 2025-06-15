@@ -41,3 +41,5 @@ void hkGraphDrawAxes(const GraphConfig_t* config);
 void hkGraphAddDataPoint(GraphConfig_t* config, f32 data);
 void hkGraphDrawLegend(const GraphConfig_t* config, const char* title);
 void hkGraphDraw(const GraphConfig_t* config);
+void hkGraphDrawValue(const GraphConfig_t* config, const f32 data, const u8 precision);
+void hkGraphDrawValueFollow(const GraphConfig_t* config, const f32 data, const u8 precision);

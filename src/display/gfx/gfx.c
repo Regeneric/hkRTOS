@@ -138,3 +138,55 @@ void hkGraphDrawLegend(const GraphConfig_t* config, const char* title) {
     snprintf(label, sizeof(label), "%.0f", config->minVal);
     hkDrawString(6, (config->y + config->height - 8), label, config->legendColour, 1);
 }
+
+static u8 GFX_PrecisionPrint(u8 precision, f32 data, char* buffer, size_t len) {
+    switch(precision) {
+        case 0:
+            return snprintf(buffer, len, "%.0f", data);
+            break;
+        case 1:
+            return snprintf(buffer, len, "%.1f", data);
+            break;
+        case 2:
+            return snprintf(buffer, len, "%.2f", data);
+            break;
+        case 3:
+            return snprintf(buffer, len, "%.3f", data);
+            break;
+        default:
+            return snprintf(buffer, len, "%.1f", data);
+            break;
+    }
+}
+
+void hkGraphDrawValue(const GraphConfig_t* config, const f32 data, const u8 precision) {
+    char label[16];
+    u8 padding = GFX_PrecisionPrint(precision, data, label, sizeof(label));
+
+    u8 labelX = config->x + config->width - (padding*6);
+    hkDrawString(labelX, (config->y + 1), label, config->legendColour, 1);
+}
+
+void hkGraphDrawValueFollow(const GraphConfig_t* config, const f32 data, const u8 precision) {
+    char label[16];
+    u8 padding = GFX_PrecisionPrint(precision, data, label, sizeof(label));
+
+    u16 idx = (config->cursorX == 0) ? (config->width - 1) : (config->cursorX - 1);
+    i16 currY = config->history[idx];
+
+    if(currY >= config->height - 7) currY -= 9;
+    else currY += 9;
+
+    // Clamp Y axis
+    if(currY < config->y) currY = (config->y + 7);
+    if(currY > config->y + config->height) currY = (config->y + config->height) - 7;
+
+    // Clamp X axis
+    u8 currX = (config->x + idx - ((padding*5)/2));    
+    if(currX >= (config->width - config->x))     currX = ((padding*5)/2)-4;
+    if(currX >= (config->width - (padding*6)))   currX = (config->width - (padding*6)+4); 
+    if(currX <= (((padding*5)/2) + config->x-8)) currX = ((padding*6)/2) - config->x;  // ((padding*5)/2)-4;
+
+
+    hkDrawString(currX, currY, label, config->legendColour, 1);
+}
