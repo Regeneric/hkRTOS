@@ -9,15 +9,19 @@
 #define hkSGP30_JSON_BUFFER   64
 
 enum {
-    hkSGP_INIT          = 0x03,
-    hkSGP_RESET         = 0x06,
-    hkSGP_START_MEASURE = 0x08,
-    hkSGP_GET_BASELINE  = 0x15,
-    hkSGP_SET_BASELINE  = 0x1E,
-    hkSGP_SET_HUMIDITY  = 0x61,
-    hkSGP_READY         = 0x2137,
-    hkSGP_BASELINE_READY   = 0x0420,
-    hkSGP_READ_IN_PROGRESS = 0x696
+    SGP30_READ_INIT,
+    SGP30_READ_READY,
+    SGP30_READ_BASELINE_INIT,
+    SGP30_READ_BASELINE_READY,
+    SGP30_INIT          = 0x03,
+    SGP30_RESET         = 0x06,
+    SGP30_START_MEASURE = 0x08,
+    SGP30_GET_BASELINE  = 0x15,
+    SGP30_SET_BASELINE  = 0x1E,
+    SGP30_SET_HUMIDITY  = 0x61,
+    SGP30_READY         = 0x2137,
+    SGP30_BASELINE_READY   = 0x0420,
+    SGP30_READ_IN_PROGRESS = 0x696
 };
 
 typedef struct SGP30_Config_t {
@@ -41,7 +45,10 @@ i32  SGP30_WriteCommand(I2C_Config_t* i2c, SGP30_Config_t* config, u8 command);
 i32  SGP30_Init(I2C_Config_t* i2c, SGP30_Config_t* config);
 void SGP30_ProcessData(SGP30_Config_t* config, SGP30_DataPacket_t* data);
 void SGP30_InitRead(I2C_Config_t* i2c, SGP30_Config_t* config);
+void SGP30_InitReadHumidCompensation(I2C_Config_t* i2c, SGP30_Config_t* config, void* sensorData);
 i32  SGP30_Read(I2C_Config_t* i2c, SGP30_Config_t* config);
+i32  SGP30_ReadBlocking(I2C_Config_t* i2c, SGP30_Config_t* config);
+i32  SGP30_ReadBlockingHumidComp(I2C_Config_t* i2c, SGP30_Config_t* config, void* sensorData);
 
 void SGP30_InitGetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config);
 i32  SGP30_GetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config);

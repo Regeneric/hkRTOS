@@ -30,6 +30,7 @@ void GFX_DrawFastHLine(u8 x, u8 y, u8 w, u8 color);
 void GFX_DrawFastVLine(u8 x, u8 y, u8 h, u8 color);
 void GFX_DrawRect(u8 x, u8 y, u8 w, u8 h, u8 color);
 void GFX_FillRect(u8 x, u8 y, u8 w, u8 h, u8 color);
+void GFX_FillFastRect(u8 x, u8 y, u8 w, u8 h, u8 color);
 void GFX_DrawFastChar(u8 x, u8 y, u8 c);
 void GFX_DrawChar(u8 x, u8 y, u8 c, u8 color, u8 size);
 void GFX_DrawFastString(u8 x, u8 y, const char* str);

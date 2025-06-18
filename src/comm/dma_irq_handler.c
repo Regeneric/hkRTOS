@@ -5,7 +5,7 @@
 #include <comm/uart.h>
 #include <comm/onewire/onewire.h>
 
-#include <sensors/dht11/dht11.h>
+#include <sensors/dht11_22/dht11_22.h>
 
 static u32 sgDMA_UART_Channel = -1;
 static UART_Config_t* sgUART_Config; 

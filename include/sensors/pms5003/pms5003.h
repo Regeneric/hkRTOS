@@ -9,14 +9,17 @@
 #define hkPMS5003_JSON_BUFFER   64
 
 enum {
-    hkPMS_START_BYTE_1  = 0x42,
-    hkPMS_START_BYTE_2  = 0x4D,
-    hkPMS_PACKET_LENGTH = 32
+    PMS5003_INIT,
+    PMS5003_READ_INIT,
+    PMS5003_START_BYTE_1  = 0x42,
+    PMS5003_START_BYTE_2  = 0x4D,
+    PMS5003_PACKET_LENGTH = 32
 };
 
 typedef struct PMS5003_Config_t {
     u8*    rawData;
     size_t length;
+    u8     status;
 } PMS5003_Config_t;
 
 // I know it's redundant, I just want to have some universal pattern around my code
@@ -30,6 +33,8 @@ typedef struct PMS5003_DataPacket_t {
 
 
 void PMS5003_ProcessData(PMS5003_Config_t* config, PMS5003_DataPacket_t* data);
+void PMS5003_ProcessDataHumidCompensation(PMS5003_Config_t* config, PMS5003_DataPacket_t* data, void* humidityData);
+
 b8 PMS5003_Read(UART_Config_t* uart, PMS5003_Config_t* config);
 
 

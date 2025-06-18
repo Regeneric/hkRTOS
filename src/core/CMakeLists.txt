@@ -2,6 +2,7 @@ add_library(libcore
     STATIC
         gpio.c
         logger.c
+        hmean.c
 )
 
 

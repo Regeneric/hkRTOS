@@ -4,26 +4,28 @@
 
 #define hkDS18B20_JSON_BUFFER   64
 
-typedef enum {    
+enum {    
     DS18B20_CONVERT_T         = 0x44,
     DS18B20_WRITE_SCRATCHPAD  = 0x4E,
     DS18B20_COPY_SCRATCHPAD   = 0x48,
     DS18B20_READ_SCRATCHPAD   = 0xBE,
     DS18B20_RECALL_EE         = 0xB8,
     DS18B20_READ_POWER_SUPPLY = 0xB4
-} DS18B20_Commands;
+};
 
-typedef enum {
-    DS18B20_STATE_IDLE,                 
-    DS18B20_STATE_START_CONVERSION,     
-    DS18B20_STATE_WAITING_FOR_CONVERSION, 
-    DS18B20_STATE_START_READ,           
-    DS18B20_STATE_READING_SCRATCHPAD,   
-    DS18B20_STATE_PROCESS_DATA,        
+enum {
+    DS18B20_INIT,
+    DS18B20_READ_INIT,
+    DS18B20_IDLE,                 
+    DS18B20_START_CONVERSION,     
+    DS18B20_WAITING_FOR_CONVERSION, 
+    DS18B20_START_READ,           
+    DS18B20_READING_SCRATCHPAD,   
+    DS18B20_PROCESS_DATA,        
     DS18B20_DATA_READY,
     DS18B20_DATA_ERROR,
     DS18B20_DATA_PROCESSED 
-} DS18B20_State_t;
+};
 
 typedef struct DS18B20_Config_t {
     u64    address;
@@ -32,7 +34,7 @@ typedef struct DS18B20_Config_t {
     void*  queue;
     f32    temperature;
     u8     dataCount;
-    DS18B20_State_t state;
+    u16    state;
     absolute_time_t convertStartTime;
 } DS18B20_Config_t;
 

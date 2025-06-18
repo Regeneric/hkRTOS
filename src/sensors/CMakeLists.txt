@@ -1,6 +1,7 @@
 add_library(libsensors INTERFACE)
 
-add_subdirectory(dht11)
+add_subdirectory(dht11_22)
+add_subdirectory(dht20)
 add_subdirectory(ds18b20)
 add_subdirectory(bme280)
 add_subdirectory(pms5003)
@@ -18,7 +19,8 @@ endif()
 
 target_link_libraries(libsensors
     INTERFACE
-        libdht11
+        libdht11_22
+        libdht20
         libds18b20
         libpms5003
         libsgp30

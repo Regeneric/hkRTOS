@@ -12,7 +12,6 @@
 #include <comm/i2c.h>
 
 
-#define EEPROM_ADDR         0x50
 #define EEPROM_PAGE_SIZE    8
 
 b8 EEPROM_Write(const void* config, const void* packet) {
@@ -35,7 +34,7 @@ b8 EEPROM_Write(const void* config, const void* packet) {
 
     // Init write
     mutex_enter_blocking(i2c->mutex);
-    HTRACE("EEPROM_Write(): Mutex acquired");
+    HTRACE("EEPROM_Write(): I2C mutex acquired");
 
     if(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, &address, 1, true) != 1) {
         HDEBUG("EEPROM_Write(): Failed to send control signal to: 0x%x", EEPROM_ADDR);
@@ -51,12 +50,12 @@ b8 EEPROM_Write(const void* config, const void* packet) {
     if(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, buffer, (1+data->size), false) != (1+data->size)) {
         HDEBUG("EEPROM_Write(): Failed to write data to: 0x%x ; 0x%x", EEPROM_ADDR, address);
         mutex_exit(i2c->mutex);
-        HTRACE("EEPROM_Write(): Mutex released");
+        HTRACE("EEPROM_Write(): I2C mutex released");
         return false;
     } 
 
     mutex_exit(i2c->mutex);
-    HTRACE("EEPROM_Write(): Mutex released");
+    HTRACE("EEPROM_Write(): I2C mutex released");
 
     // Wait for ACK so we're sure that data write is complete
     // while(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, &address, 1, false) != 1);
@@ -77,24 +76,24 @@ b8 EEPROM_Read(const void* config, void* packet) {
     } 
     
     mutex_enter_blocking(i2c->mutex);
-    HTRACE("EEPROM_Read(): Mutex acquired");
+    HTRACE("EEPROM_Read(): mutex acquired");
 
     if(i2c_write_blocking(i2c->i2c, EEPROM_ADDR, &address, 1, true) != 1) {
         HDEBUG("EEPROM_Read(): Failed to send control signal to: 0x%x", EEPROM_ADDR);
         mutex_exit(i2c->mutex);
-        HTRACE("EEPROM_Read(): Mutex released");
+        HTRACE("EEPROM_Read(): I2C mutex released");
         return false;
     }
 
     if(i2c_read_blocking(i2c->i2c, EEPROM_ADDR, data->data, data->size, false) != data->size) {
         HDEBUG("EEPROM_Read(): Failed to read data from: 0x%x ; 0x%x", EEPROM_ADDR, address);
         mutex_exit(i2c->mutex);
-        HTRACE("EEPROM_Read(): Mutex released");
+        HTRACE("EEPROM_Read(): I2C mutex released");
         return false;
     }
 
     mutex_exit(i2c->mutex); 
-    HTRACE("EEPROM_Read(): Mutex released");
+    HTRACE("EEPROM_Read(): I2C mutex released");
     return true;
 }
 #endif

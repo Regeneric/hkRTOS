@@ -28,13 +28,15 @@ void hkDrawFastHLine(u8 x, u8 y, u8 w, u8 color);
 void hkDrawFastVLine(u8 x, u8 y, u8 h, u8 color);
 void hkDrawRect(u8 x, u8 y, u8 w, u8 h, u8 color);
 void hkFillRect(u8 x, u8 y, u8 w, u8 h, u8 color);
+void hkFillFastRect(u8 x, u8 y, u8 w, u8 h, u8 color);
 void hkDrawFastChar(u8 x, u8 y, u8 c);
 void hkDrawChar(u8 x, u8 y, u8 c, u8 color, u8 size);
 void hkDrawFastString(u8 x, u8 y, const char* str);
 void hkDrawString(u8 x, u8 y, const char* str, u8 color, u8 size);
 
 void hkDrawTestPattern();
-void hkScreenSaver(u8 width, u8 height);
+void hkScreenSaverInit();
+void hkScreenSaver(u8 width, u8 height, u8 screenSaver);
 
 void hkGraphInit(GraphConfig_t* config);
 void hkGraphDrawAxes(const GraphConfig_t* config);

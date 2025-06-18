@@ -25,7 +25,8 @@ target_link_libraries(libgfx
         libssd1327
 
     PUBLIC
-        pico_stdlib 
+        pico_stdlib
+        pico_rand
 
         hardware_gpio
         hardware_i2c 

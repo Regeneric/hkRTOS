@@ -106,45 +106,45 @@ u8 DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B2
 
 void DS18B20_Read(DS18B20_Config_t* config) {
     HTRACE("ds18b20.c -> DS18B20_Read(DS18B20_Config_t*):void");
-    if(config->state == DS18B20_STATE_IDLE) config->state = DS18B20_STATE_START_CONVERSION;
+    if(config->state == DS18B20_IDLE) config->state = DS18B20_START_CONVERSION;
 }
 
 void DS18B20_Tick(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data) {
     HTRACE("ds18b20.c -> DS18B20_Tick(OneWire_Config_t*, DS18B20_Config_t*, DS18B20_DataPacket_t):void");
 
     switch(config->state) {
-        case DS18B20_STATE_START_CONVERSION:
-            HDEBUG("DS18B20_STATE_START_CONVERSION");
+        case DS18B20_START_CONVERSION:
+            HTRACE("DS18B20_Tick(): DS18B20_START_CONVERSION");
 
             if(OneWire_Reset(ow)) {
                 OneWire_WriteByte(ow, ONEW_SKIP_ROM);
                 OneWire_WriteByte(ow, DS18B20_CONVERT_T);
 
                 config->convertStartTime = get_absolute_time();
-                config->state = DS18B20_STATE_WAITING_FOR_CONVERSION;
-            } else config->state = DS18B20_STATE_IDLE;
+                config->state = DS18B20_WAITING_FOR_CONVERSION;
+            } else config->state = DS18B20_IDLE;
             break;
-        case DS18B20_STATE_WAITING_FOR_CONVERSION:
-            HDEBUG("DS18B20_STATE_WAITING_FOR_CONVERSION");
-            if(absolute_time_diff_us(config->convertStartTime, get_absolute_time()) > 750000) config->state = DS18B20_STATE_START_READ;
+        case DS18B20_WAITING_FOR_CONVERSION:
+            HTRACE("DS18B20_Tick(): DS18B20_WAITING_FOR_CONVERSION");
+            if(absolute_time_diff_us(config->convertStartTime, get_absolute_time()) > 750000) config->state = DS18B20_START_READ;
             break;
-        case DS18B20_STATE_START_READ:
-            HDEBUG("DS18B20_STATE_START_READ");
+        case DS18B20_START_READ:
+            HTRACE("DS18B20_Tick(): DS18B20_START_READ");
             if(OneWire_Reset(ow)) {
                 OneWire_WriteByte(ow, ONEW_SKIP_ROM);
                 OneWire_WriteByte(ow, DS18B20_READ_SCRATCHPAD);
 
                 config->dataCount = 0;
-                config->state = DS18B20_STATE_READING_SCRATCHPAD;
-            } else config->state = DS18B20_STATE_IDLE;
+                config->state = DS18B20_READING_SCRATCHPAD;
+            } else config->state = DS18B20_IDLE;
             break;
-        case DS18B20_STATE_READING_SCRATCHPAD:
-            HDEBUG("DS18B20_STATE_READING_SCRATCHPAD");
+        case DS18B20_READING_SCRATCHPAD:
+            HTRACE("DS18B20_Tick(): DS18B20_READING_SCRATCHPAD");
             if(config->dataCount < config->length) config->data[config->dataCount++] = OneWire_Read(ow);
-            if(config->dataCount >= config->length) config->state = DS18B20_STATE_PROCESS_DATA;
+            if(config->dataCount >= config->length) config->state = DS18B20_PROCESS_DATA;
             break;
-        case DS18B20_STATE_PROCESS_DATA:
-            HDEBUG("DS18B20_STATE_PROCESS_DATA");
+        case DS18B20_PROCESS_DATA:
+            HTRACE("DS18B20_PROCESS_DATA");
             if(DS18B20_CRC(config->data, config->length)) {
                 i16 rawTemp = (i16)((config->data[1] << 8) | config->data[0]);
                 data->temperature = (f32)rawTemp / 16.0f;
@@ -152,13 +152,13 @@ void DS18B20_Tick(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPa
                 
                 data->status = DS18B20_DATA_READY; 
             } else {
-                HWARN("DS18B20_Read(): CRC check failed. Data is corrupted.");
+                HWARN("DS18B20_Tick(): CRC check failed. Data is corrupted.");
                 data->status = DS18B20_DATA_ERROR; 
             }
 
-            config->state = DS18B20_STATE_IDLE;
+            config->state = DS18B20_IDLE;
             break;
-        case DS18B20_STATE_IDLE:
+        case DS18B20_IDLE:
         default: break;
     }
 }

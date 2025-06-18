@@ -57,6 +57,15 @@
         "bme280.h": "c",
         "sgp30.h": "c",
         "queue.h": "c",
-        "dma_irq_handler.h": "c"
+        "dma_irq_handler.h": "c",
+        "sstream": "c",
+        "math.h": "c",
+        "random": "c",
+        "charconv": "cpp",
+        "compare": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "variant": "cpp"
     }
 }

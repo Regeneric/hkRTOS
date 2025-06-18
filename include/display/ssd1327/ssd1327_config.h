@@ -3,7 +3,9 @@
 
 #define SSD1327_RESET_PIN               10
 
-#define SSD1327_ADDRESS                 0x3C    //  Or 0x3D
+#ifndef SSD1327_ADDRESS
+    #define SSD1327_ADDRESS             0x3C    //  Or 0x3D
+#endif
 #define SSD1327_WIDTH                   128
 #define SSD1327_HEIGHT                  128
 

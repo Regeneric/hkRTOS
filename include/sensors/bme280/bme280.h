@@ -3,19 +3,21 @@
 #include <stdio.h>
 #include <pico/sync.h>
 
-#define hkBME280_ADDRESS    0x76   // or 0x77
-#define hkBM280_JSON_BUFFER 96
+#include <comm/i2c.h>
+
+#define hkBM280_JSON_BUFFER 128
 
 enum {
-    BME_INIT,
-    BME_READ_SUCCESS,
-    BME_READ_IN_PROGRESS,
-    BME_READ_BAD_CHECKSUM,
-    BME_REG_CALIB_00  = 0x88,
-    BME_REG_CALIB_26  = 0xE1,
-    BME_REG_CTRL_HUM  = 0xF2,
-    BME_REG_CTRL_MEAS = 0xF4,
-    BME_REG_CONFIG    = 0xF5
+    BME280_INIT,
+    BME280_READ_READY,
+    BME280_READ_SUCCESS,
+    BME280_READ_IN_PROGRESS,
+    BME280_READ_BAD_CHECKSUM,
+    BME280_REG_CALIB_00  = 0x88,
+    BME280_REG_CALIB_26  = 0xE1,
+    BME280_REG_CTRL_HUM  = 0xF2,
+    BME280_REG_CTRL_MEAS = 0xF4,
+    BME280_REG_CONFIG    = 0xF5
 };
 
 // It's all defined by the datasheet
@@ -45,6 +47,7 @@ typedef struct BME280_CalibrationParams_t {
 typedef struct BME280_Config_t {
     u8*    rawData;
     size_t length;
+    u8     address;
     vu16   status;
     u8     humiditySampling;
     u8     iirCoefficient;
@@ -57,7 +60,9 @@ typedef char* (*json)(const void* self);
 typedef struct BME280_DataPacket_t {
     f32  pressure;
     f32  temperature;
+    f32  dewPoint;
     f32  humidity;
+    f32  absoluteHumidity;
     json jsonify;
 } BME280_DataPacket_t;
 
@@ -67,6 +72,7 @@ i32 BME280_Read(I2C_Config_t* i2c, BME280_Config_t* config);
 i32 BME280_WriteCommand(I2C_Config_t* i2c, BME280_Config_t* config, u8 command);
 
 void BME280_ProcessData(BME280_Config_t* config, BME280_DataPacket_t* data);
+BME280_DataPacket_t BME280_AverageData(BME280_DataPacket_t* data, size_t len);
 
 
 static char* BME280_Jsonify(const void* self) {   
@@ -76,7 +82,8 @@ static char* BME280_Jsonify(const void* self) {
         "\"sensor\": \"bme280\","
         "\"pressure\": %.2f,"
         "\"temperature\": %.2f,"
-        "\"humidity\": %.2f"
+        "\"humidity\": %.2f,"
+        "\"absoluteHumidity\": %.2f"
     "}";
     
     static char buffer[hkBM280_JSON_BUFFER];
