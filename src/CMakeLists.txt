@@ -7,7 +7,7 @@ add_subdirectory(input)
 
 add_executable(${PROJECT_NAME}
     main.c
-    comm_and_render.c
+    display.c
 )
 
 target_include_directories(${PROJECT_NAME} 

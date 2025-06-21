@@ -6,18 +6,17 @@
 
 
 // Official Bosch implementation
-i32 tFine;
-static i32 BME280_CompensateTemp(i32 adcT, BME280_Config_t* config) {
+static i32 BME280_CompensateTemp(i32 adcT, BME280_Config_t* config, i32* tFine) {
     i32 var1, var2, T;
     var1 = ((((adcT >> 3)  - ((i32) config->params.dig_T1 << 1))) * ((i32) config->params.dig_T2)) >> 11;
     var2 = (((((adcT >> 4) - ((i32) config->params.dig_T1)) * ((adcT >> 4) - ((i32) config->params.dig_T1))) >> 12) * ((i32) config->params.dig_T3)) >> 14;
-    tFine = var1 + var2;
-    T = (tFine * 5 + 128) >> 8;
+    *tFine = var1 + var2;
+    T = (*tFine * 5 + 128) >> 8;
     return T;   // Celsius, 0.01 resolution, `2137` equals 21.37 *C`
 }
 
 // Official Bosch implementation
-static u32 BME280_CompensatePressure(i32 adcP, BME280_Config_t* config) {
+static u32 BME280_CompensatePressure(i32 adcP, BME280_Config_t* config, i32 tFine) {
     i64 var1, var2, p;
     var1 = ((i64) tFine) - 128000;
     var2 = var1 * var1 * (i64)config->params.dig_P6;
@@ -36,7 +35,7 @@ static u32 BME280_CompensatePressure(i32 adcP, BME280_Config_t* config) {
 }
 
 // Official Bosch implementation
-static u32 BME280_CompensateHumidity(i32 adcH, BME280_Config_t* config) {
+static u32 BME280_CompensateHumidity(i32 adcH, BME280_Config_t* config, i32 tFine) {
     i32 v_x1_u32r;
     v_x1_u32r = (tFine - ((i32)76800));
 
@@ -349,9 +348,10 @@ void BME280_ProcessData(BME280_Config_t* config, BME280_DataPacket_t* data) {
     i32 rawHumidity = (config->rawData[6] <<  8) |  config->rawData[7];
 
     // IT MUST BE IN THIS ORDER
-    i32 temperature = BME280_CompensateTemp(rawTemp, config);
-    u32 pressure    = BME280_CompensatePressure(rawPressure, config);
-    u32 humidity    = BME280_CompensateHumidity(rawHumidity, config);
+    i32 tFine = 0;
+    i32 temperature = BME280_CompensateTemp(rawTemp, config, &tFine);
+    u32 pressure    = BME280_CompensatePressure(rawPressure, config, tFine);
+    u32 humidity    = BME280_CompensateHumidity(rawHumidity, config, tFine);
 
     data->temperature = temperature / 100.0f;
     data->pressure = (pressure / 256.0f) / 100.0f;;
@@ -393,4 +393,34 @@ BME280_DataPacket_t BME280_AverageData(BME280_DataPacket_t* data, size_t len) {
     BME280_DewPoint(&avg);
 
     return avg;
+}
+
+
+void vBME280_Task(void* pvParameters) {
+    HTRACE("bme280.c -> vBME280_Task(void*):void");
+
+    BME280_TaskParams_t* params = (BME280_TaskParams_t*)pvParameters;
+    UBaseType_t coreID = portGET_CORE_ID();
+
+    // Error loop
+    while(BME280_Init(params->i2c, params->bme280) != true) {
+        HFATAL("vBME280_Task(): BME280 failed to initialize! Retrying in 10 seconds...");
+        vTaskDelay(pdMS_TO_TICKS(10000));
+    } 
+    
+    vTaskDelay(pdMS_TO_TICKS(100));
+    while(FOREVER) {
+        HTRACE("vBME280_Task(): Running on core {%d}", (u16)coreID);
+
+        BME280_InitRead(params->i2c, params->bme280);
+        vTaskDelay(pdMS_TO_TICKS(15));
+        BME280_Read(params->i2c, params->bme280);
+
+        if(params->bme280->status == BME280_READ_SUCCESS) {
+            BME280_ProcessData(params->bme280, params->data);
+            xQueueSend(params->bme280->queue, params->data, 0);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));    // 1 Hz polling rate
+    }
 }

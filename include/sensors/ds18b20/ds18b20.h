@@ -1,4 +1,8 @@
 #pragma once
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
+
 #include <defines.h>
 #include <comm/onewire/onewire.h>
 
@@ -31,11 +35,12 @@ typedef struct DS18B20_Config_t {
     u64    address;
     u8*    data;
     size_t length;
-    void*  queue;
     f32    temperature;
     u8     dataCount;
     u16    state;
+    u8     resolution;
     absolute_time_t convertStartTime;
+    QueueHandle_t queue;
 } DS18B20_Config_t;
 
 // I know it's redundant, I just want to have some universal pattern around my code
@@ -47,6 +52,14 @@ typedef struct DS18B20_DataPacket_t {
     json jsonify;
 } DS18B20_DataPacket_t;
 
+typedef struct DS18B20_TaskParams_t {
+    OneWire_Config_t*     ow;
+    DS18B20_Config_t*     ds18b20;
+    DS18B20_DataPacket_t* data;
+} DS18B20_TaskParams_t;
+
+
+void vDS18B20_Task(void* pvParameters);
 
 #if hkOW_USE_DMA
     u8 DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data);

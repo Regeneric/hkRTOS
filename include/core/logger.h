@@ -1,7 +1,7 @@
 #pragma once
 #include <defines.h>
 
-#define HK_LOG_MSG_MAX_LEN 80
+#define HK_LOG_MSG_MAX_LEN 128
 
 #define LOG_FATAL 0
 #define LOG_ERROR 1

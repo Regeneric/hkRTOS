@@ -85,7 +85,7 @@
     #define hkSGP30_USE_SENSOR                  true                            // Decide if we want to use SGP30
     #if hkSGP30_USE_SENSOR
         #define hkSGP30_ADDRESS                 0x58                            // i2c address
-        #define hkSGP30_HUMID_COMPENSATION      true                            // We can compensate reading for high humidity
+        #define hkSGP30_HUMID_COMPENSATION      false                           // We can compensate reading for high humidity TODO: make it work with RTOS
         #if hkSGP30_HUMID_COMPENSATION
             #define hkSGP30_USE_DHT             false                           // Use DHT for humidity and temperature compensation
             #define hkSGP30_USE_BME280          true                            // Use BME280 for humidity and temperature compensation
@@ -93,7 +93,7 @@
     #endif
     #define hkPMS5003_USE_SENSOR                true                            // Decide if we want to use PMS5003
     #if hkPMS5003_USE_SENSOR
-        #define hkPMS5003_HUMID_COMPENSATION    true                            // We can compensate reading for high humidity
+        #define hkPMS5003_HUMID_COMPENSATION    false                           // We can compensate reading for high humidity TODO: make it work with RTOS
         #if hkPMS5003_HUMID_COMPENSATION
             #define hkPMS5003_USE_DHT           false                           // Use DHT for humidity and temperature compensation
             #define hkPMS5003_USE_BME280        true                            // Use BME280 for humidity and temperature compensation

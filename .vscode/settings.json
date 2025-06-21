@@ -66,6 +66,8 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "dht11_22.h": "c",
+        "ky40.h": "c"
     }
 }

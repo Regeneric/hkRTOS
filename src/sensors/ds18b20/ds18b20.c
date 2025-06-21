@@ -45,7 +45,7 @@ static b8 DS18B20_Convert(OneWire_Config_t* ow, u64 address) {
     }
     if(OneWire_WriteByte(ow, DS18B20_CONVERT_T) == false) return false;
 
-    while(OneWire_Read(ow) == 0);   // Wait for conversion to end
+    // while(OneWire_Read(ow) == 0);   // Wait for conversion to end
     return true;
 }
 
@@ -104,7 +104,29 @@ u8 DS18B20_ReadAndProcess(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B2
     return result;
 }
 
-void DS18B20_Read(DS18B20_Config_t* config) {
+u8 DS18B20_ProcessData(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPacket_t* data) {
+    HTRACE("ds18b20.c -> DS18B20_ProcessData(OneWire_Config_t*, DS18B20_Config_t*, DS18B20_DataPacket_t*):u8");
+
+    u8 result = 0;
+    if(config->address == ONEW_SKIP_ROM) result = DS18B20_SkipRead(ow, config);
+    else result = DS18B20_MatchRead(ow, config);
+
+    if(!DS18B20_CRC(config->data, config->length)) {
+        HWARN("DS18B20_Read(): CRC check failed. Data is corrupted.");
+        return false;
+    }
+
+    if(!result) return result;  // Something went wrong, early return
+
+    i16 rawTemp = (i16)((config->data[1] << 8) | config->data[0]);
+    f32 temp = (f32)rawTemp/16.0f;
+
+    data->temperature = temp;
+    data->address = ONEW_SKIP_ROM ? 0x00 : config->address;
+    return result;
+}
+
+void DS18B20_TickRead(DS18B20_Config_t* config) {
     HTRACE("ds18b20.c -> DS18B20_Read(DS18B20_Config_t*):void");
     if(config->state == DS18B20_IDLE) config->state = DS18B20_START_CONVERSION;
 }
@@ -113,7 +135,7 @@ void DS18B20_Tick(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPa
     HTRACE("ds18b20.c -> DS18B20_Tick(OneWire_Config_t*, DS18B20_Config_t*, DS18B20_DataPacket_t):void");
 
     switch(config->state) {
-        case DS18B20_START_CONVERSION:
+        case DS18B20_START_CONVERSION: {
             HTRACE("DS18B20_Tick(): DS18B20_START_CONVERSION");
 
             if(OneWire_Reset(ow)) {
@@ -123,12 +145,14 @@ void DS18B20_Tick(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPa
                 config->convertStartTime = get_absolute_time();
                 config->state = DS18B20_WAITING_FOR_CONVERSION;
             } else config->state = DS18B20_IDLE;
-            break;
-        case DS18B20_WAITING_FOR_CONVERSION:
+        } break;
+
+        case DS18B20_WAITING_FOR_CONVERSION: {
             HTRACE("DS18B20_Tick(): DS18B20_WAITING_FOR_CONVERSION");
             if(absolute_time_diff_us(config->convertStartTime, get_absolute_time()) > 750000) config->state = DS18B20_START_READ;
-            break;
-        case DS18B20_START_READ:
+        } break;
+        
+        case DS18B20_START_READ: {
             HTRACE("DS18B20_Tick(): DS18B20_START_READ");
             if(OneWire_Reset(ow)) {
                 OneWire_WriteByte(ow, ONEW_SKIP_ROM);
@@ -137,13 +161,15 @@ void DS18B20_Tick(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPa
                 config->dataCount = 0;
                 config->state = DS18B20_READING_SCRATCHPAD;
             } else config->state = DS18B20_IDLE;
-            break;
-        case DS18B20_READING_SCRATCHPAD:
+        } break;
+
+        case DS18B20_READING_SCRATCHPAD: {
             HTRACE("DS18B20_Tick(): DS18B20_READING_SCRATCHPAD");
             if(config->dataCount < config->length) config->data[config->dataCount++] = OneWire_Read(ow);
             if(config->dataCount >= config->length) config->state = DS18B20_PROCESS_DATA;
-            break;
-        case DS18B20_PROCESS_DATA:
+        } break;
+
+        case DS18B20_PROCESS_DATA: {
             HTRACE("DS18B20_PROCESS_DATA");
             if(DS18B20_CRC(config->data, config->length)) {
                 i16 rawTemp = (i16)((config->data[1] << 8) | config->data[0]);
@@ -157,7 +183,8 @@ void DS18B20_Tick(OneWire_Config_t* ow, DS18B20_Config_t* config, DS18B20_DataPa
             }
 
             config->state = DS18B20_IDLE;
-            break;
+        } break;
+        
         case DS18B20_IDLE:
         default: break;
     }
@@ -202,5 +229,35 @@ b8 DS18B20_SetResolution(OneWire_Config_t* ow, u8 resolution) {
     HINFO("Resolution change complete.");
     return true;
 }
-
 #endif
+
+
+void vDS18B20_Task(void* pvParameters) {
+    HTRACE("ds18b20.c -> vDS18B20_Task(void*):void");
+
+    DS18B20_TaskParams_t* params = (DS18B20_TaskParams_t*)pvParameters;
+    UBaseType_t coreID = portGET_CORE_ID();
+
+    // Error loop
+    while(DS18B20_SetResolution(params->ow, params->ds18b20->resolution) != true) {
+        HFATAL("vDS18B20_Task(): DS18B20 failed to initialize! Retrying in 10 seconds...");
+        vTaskDelay(pdMS_TO_TICKS(10000));
+    } 
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+    while(FOREVER) {
+        HTRACE("vDS18B20_Task(): Running on core {%d}", (u16)coreID);
+
+        DS18B20_Convert(params->ow, params->ds18b20->address);
+        switch(params->ds18b20->resolution) {
+            case  9: vTaskDelay(pdMS_TO_TICKS(95));  break;
+            case 10: vTaskDelay(pdMS_TO_TICKS(190)); break;
+            case 11: vTaskDelay(pdMS_TO_TICKS(380)); break;
+            case 12: vTaskDelay(pdMS_TO_TICKS(755)); break;
+            default: vTaskDelay(pdMS_TO_TICKS(800)); break;
+        }
+
+        DS18B20_ProcessData(params->ow, params->ds18b20, params->data);
+        xQueueSend(params->ds18b20->queue, params->data, 0);
+    }
+}

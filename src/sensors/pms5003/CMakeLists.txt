@@ -30,4 +30,7 @@ target_link_libraries(libpms5003
 
         hardware_gpio
         hardware_uart
+
+        FreeRTOS-Kernel
+        FreeRTOS-Kernel-Heap4 
 )

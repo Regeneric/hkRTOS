@@ -1,4 +1,9 @@
 #pragma once
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
+#include <semphr.h>
+
 #include <defines.h>
 #include <hardware/uart.h>
 
@@ -19,6 +24,7 @@ typedef struct UART_Config_t {
     u8  length;
     vu8 status;
     u8  packetSize;
+    SemaphoreHandle_t dmaSemaphore;
 } UART_Config_t;
 
 void UART_Init(UART_Config_t* config);

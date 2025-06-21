@@ -1,4 +1,8 @@
 #pragma once
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
+
 #include <defines.h>
 #include <stdio.h>
 #include <pico/sync.h>
@@ -52,6 +56,7 @@ typedef struct BME280_Config_t {
     u8     humiditySampling;
     u8     iirCoefficient;
     u8     tempAndPressureMode;
+    QueueHandle_t queue;
     BME280_CalibrationParams_t params;
 } BME280_Config_t;
 
@@ -65,6 +70,15 @@ typedef struct BME280_DataPacket_t {
     f32  absoluteHumidity;
     json jsonify;
 } BME280_DataPacket_t;
+
+typedef struct BME280_TaskParams_t {
+    I2C_Config_t*        i2c;
+    BME280_Config_t*     bme280;
+    BME280_DataPacket_t* data;
+} BME280_TaskParams_t;
+
+
+void vBME280_Task(void* pvParameters);
 
 i32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config);
 i32 BME280_InitRead(I2C_Config_t* i2c, BME280_Config_t* config);

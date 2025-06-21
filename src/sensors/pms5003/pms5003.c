@@ -122,3 +122,30 @@ b8 PMS5003_Read(UART_Config_t* uart, PMS5003_Config_t* config) {
     config->rawData = uart->data;
     return true;
 }
+
+
+void vPMS5003_Task(void* pvParameters) {
+    HTRACE("pms5003.c -> vPMS5003_Task(void*):void");
+
+    PMS5003_TaskParams_t* params = (PMS5003_TaskParams_t*)pvParameters;
+    UBaseType_t coreID = portGET_CORE_ID();
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+    while(FOREVER) {
+        HTRACE("vPMS5003_Task(): Running on core {%d}", (u16)coreID);
+    
+        PMS5003_Read(params->uart, params->pms5003);
+
+        if(xSemaphoreTake(params->uart->dmaSemaphore, pdMS_TO_TICKS(1000)) == pdTRUE) {
+            #if hkBME280_USE_SENSOR && hkPMS5003_HUMID_COMPENSATION
+                PMS5003_ProcessDataHumidCompensation(params->pms5003, params->data, params->humidSensor);
+            #else
+                PMS5003_ProcessData(params->pms5003, params->data);
+            #endif
+
+            xQueueSend(params->pms5003->queue, params->data, 0);
+        } else HWARN("vPMS5003_Task(): Timed out waiting for UART DMA completion.");
+
+        vTaskDelay(pdMS_TO_TICKS(2000));
+    }
+}

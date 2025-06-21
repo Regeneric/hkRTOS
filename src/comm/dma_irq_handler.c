@@ -76,9 +76,15 @@ void DMA_DHT_Register(void* config, u32 channel) {
     sgDHT_Config = config;
 }
 
+
 void DMA_UART_ISR() {
-    if(sgUART_Config != NULL) {
+    if(sgUART_Config != NULL && sgUART_Config->dmaSemaphore != NULL) {
         sgUART_Config->status = UART_DATA_RX_SUCCESS;
+
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(sgUART_Config->dmaSemaphore, &xHigherPriorityTaskWoken);
+
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }
 

@@ -1,4 +1,8 @@
 #pragma once
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
+
 #include <defines.h>
 #include <comm/i2c.h>
 
@@ -25,11 +29,13 @@ enum {
 };
 
 typedef struct SGP30_Config_t {
+    u8     address;
     vu16   status;
     u8*    rawData;
     size_t length;
     u16    eco2Baseline;
     u16    tvocBaseline;
+    QueueHandle_t queue;
 } SGP30_Config_t;
 
 // I know it's redundant, I just want to have some universal pattern around my code
@@ -40,19 +46,23 @@ typedef struct SGP30_DataPacket_t {
     json jsonify;
 } SGP30_DataPacket_t;
 
+typedef struct SGP30_TaskParams_t {
+    I2C_Config_t*       i2c;
+    SGP30_Config_t*     sgp30;
+    SGP30_DataPacket_t* data;
+    void* humidSensor;
+} SGP30_TaskParams_t;
 
-i32  SGP30_WriteCommand(I2C_Config_t* i2c, SGP30_Config_t* config, u8 command);
+
+void vSGP30_Task(void* pvParameters);
+
 i32  SGP30_Init(I2C_Config_t* i2c, SGP30_Config_t* config);
-void SGP30_ProcessData(SGP30_Config_t* config, SGP30_DataPacket_t* data);
 void SGP30_InitRead(I2C_Config_t* i2c, SGP30_Config_t* config);
 void SGP30_InitReadHumidCompensation(I2C_Config_t* i2c, SGP30_Config_t* config, void* sensorData);
 i32  SGP30_Read(I2C_Config_t* i2c, SGP30_Config_t* config);
 i32  SGP30_ReadBlocking(I2C_Config_t* i2c, SGP30_Config_t* config);
 i32  SGP30_ReadBlockingHumidComp(I2C_Config_t* i2c, SGP30_Config_t* config, void* sensorData);
-
-void SGP30_InitGetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config);
-i32  SGP30_GetBaseline(I2C_Config_t* i2c, SGP30_Config_t* config);
-void SGP30_ProcessBaseline(SGP30_Config_t* config);
+void SGP30_ProcessData(SGP30_Config_t* config, SGP30_DataPacket_t* data);
 
 
 static char* SGP30_Jsonify(const void* self) {   

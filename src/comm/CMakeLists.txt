@@ -28,12 +28,12 @@ target_include_directories(libcomm
 target_link_libraries(libcomm
     PRIVATE
         libonewire
-        libnetwork
+        # libnetwork
 
     PUBLIC
         pico_stdlib 
         # pico_cyw43_arch_lwip_sys_freertos
-        pico_cyw43_arch_lwip_threadsafe_background
+        # pico_cyw43_arch_lwip_threadsafe_background
 
         hardware_gpio
         hardware_pio
@@ -41,4 +41,7 @@ target_link_libraries(libcomm
         hardware_uart
         hardware_dma
         hardware_irq
+
+        FreeRTOS-Kernel
+        FreeRTOS-Kernel-Heap4 
 )

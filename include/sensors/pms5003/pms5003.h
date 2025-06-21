@@ -1,4 +1,8 @@
 #pragma once
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
+
 #include <defines.h>
 #include <comm/uart.h>
 
@@ -20,6 +24,7 @@ typedef struct PMS5003_Config_t {
     u8*    rawData;
     size_t length;
     u8     status;
+    QueueHandle_t queue;
 } PMS5003_Config_t;
 
 // I know it's redundant, I just want to have some universal pattern around my code
@@ -31,6 +36,15 @@ typedef struct PMS5003_DataPacket_t {
     json jsonify;
 } PMS5003_DataPacket_t;
 
+typedef struct PMS5003_TaskParams_t {
+    UART_Config_t* uart;
+    PMS5003_Config_t* pms5003;
+    PMS5003_DataPacket_t* data;
+    void* humidSensor;
+} PMS5003_TaskParams_t;
+
+
+void vPMS5003_Task(void* pvParameters);
 
 void PMS5003_ProcessData(PMS5003_Config_t* config, PMS5003_DataPacket_t* data);
 void PMS5003_ProcessDataHumidCompensation(PMS5003_Config_t* config, PMS5003_DataPacket_t* data, void* humidityData);
