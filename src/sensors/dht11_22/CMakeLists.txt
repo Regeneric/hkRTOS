@@ -3,6 +3,7 @@ add_library(libdht11_22
         dht11_22.c
         dht11_22_pio.c
         dht11_22_dma.c
+        dht11_22_rtos.c
         dht11_22.pio
 )
 

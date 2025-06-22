@@ -49,7 +49,7 @@
 
 /* Hook function related definitions. */
 #define configCHECK_FOR_STACK_OVERFLOW                  0   // Will be needed later
-#define configUSE_MALLOC_FAILED_HOOK                    0   // Will be needed later
+#define configUSE_MALLOC_FAILED_HOOK                    1   // Will be needed later
 #define configUSE_DAEMON_TASK_STARTUP_HOOK              0   // May be needed later
 
 /* Run time and task stats gathering related definitions. */

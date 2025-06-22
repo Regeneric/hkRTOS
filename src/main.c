@@ -35,6 +35,7 @@
 
 #include <sensors/sensors.h>
 #include <sensors/dht11_22/dht11_22.h>
+#include <sensors/dht20/dht20.h>
 #include <sensors/ds18b20/ds18b20.h>
 #include <sensors/pms5003/pms5003.h>
 #include <sensors/sgp30/sgp30.h>
@@ -55,10 +56,18 @@ QueueHandle_t xPMS5003_0_DataQueue;
 QueueHandle_t xDS18B20_0_DataQueue;
 QueueHandle_t xDHT20_0_DataQueue;
 QueueHandle_t xDHT20_1_DataQueue;
+QueueHandle_t xDHT11_0_DataQueue;
+QueueHandle_t xDHT22_0_DataQueue;
 QueueHandle_t xBMP180_0_DataQueue;
 
+QueueHandle_t xSnapshotQueue;
+QueueHandle_t xDisplayQueue;
 
-extern void vDisplayTask(void* pvParameters);
+extern void vDHT_Task(void* pvParameters);
+
+extern void vDataCollectTask(void* pvParameters);
+extern void vDataProcessTask(void* pvParameters);
+extern void vDataDisplayTask(void* pvParameters);
 
 
 void main(void) {
@@ -135,9 +144,9 @@ void main(void) {
         .status  = BME280_INIT,
         .rawData = hkBME280_0_RawData,
         .length  = sizeof(hkBME280_0_RawData),
-        .humiditySampling = 0x02,
-        .iirCoefficient   = 0xA0,
-        .tempAndPressureMode = 0x4B
+        .humiditySampling    =  BME280_HUMID_OVERSAMPLING_X2,
+        .iirCoefficient      = (BME280_STANDBY_TIME_0_5_MS  | BME280_FILTER_COEFF_4),
+        .tempAndPressureMode = (BME280_OVERSAMPLING_X2 << 5 | BME280_OVERSAMPLING_X2 << 2 | BME280_MODE_FORCED)
     };
 
     xBME280_0_DataQueue = xQueueCreate(1, sizeof(BME280_DataPacket_t));
@@ -164,9 +173,9 @@ void main(void) {
         .status  = BME280_INIT,
         .rawData = hkBME280_1_RawData,
         .length  = sizeof(hkBME280_1_RawData),
-        .humiditySampling = 0x02,
-        .iirCoefficient   = 0xA0,
-        .tempAndPressureMode = 0x4B
+        .humiditySampling    =  BME280_HUMID_OVERSAMPLING_X2,
+        .iirCoefficient      = (BME280_STANDBY_TIME_0_5_MS  | BME280_FILTER_COEFF_4),
+        .tempAndPressureMode = (BME280_OVERSAMPLING_X2 << 5 | BME280_OVERSAMPLING_X2 << 2 | BME280_MODE_FORCED)
     };
 
     xBME280_1_DataQueue = xQueueCreate(1, sizeof(BME280_DataPacket_t));
@@ -184,6 +193,125 @@ void main(void) {
         .i2c    = &hkI2C1,
         .bme280 = &hkBME280_1,
         .data   = &hkBME280_1_Data
+    };
+    // ------------------------------------------------------------------------
+
+
+    // ************************************************************************
+    // = DHT20 ===
+    // ------------------------------------------------------------------------
+    static u8 hkDHT20_0_RawData[7];
+    static DHT20_Config_t hkDHT20_0 = {
+        .address = 0x38,
+        .rawData = hkDHT20_0_RawData,
+        .length  = sizeof(hkDHT20_0_RawData)
+    };
+
+    xDHT20_0_DataQueue = xQueueCreate(1, sizeof(DHT_DataPacket_t));
+    if(xDHT20_0_DataQueue == NULL) HFATAL("main(): Failed to create DHT20_0 data queue!");
+    hkDHT20_0.queue = xDHT20_0_DataQueue;
+
+    static DHT_DataPacket_t hkDHT20_0_Data = {
+        .humidity = 0.0f,
+        .temperature = 0.0f,
+        .jsonify = DHT_Jsonify
+    };
+
+    static DHT20_TaskParams_t hkDHT20_0_TaskParams = {
+        .i2c   = &hkI2C0,
+        .dht20 = &hkDHT20_0,
+        .data  = &hkDHT20_0_Data
+    };
+
+
+    static u8 hkDHT20_1_RawData[7];
+    static DHT20_Config_t hkDHT20_1 = {
+        .address = 0x38,
+        .rawData = hkDHT20_1_RawData,
+        .length  = sizeof(hkDHT20_1_RawData)
+    };
+
+    xDHT20_1_DataQueue = xQueueCreate(1, sizeof(DHT_DataPacket_t));
+    if(xDHT20_1_DataQueue == NULL) HFATAL("main(): Failed to create DHT20_1 data queue!");
+    hkDHT20_1.queue = xDHT20_1_DataQueue;
+
+    static DHT_DataPacket_t hkDHT20_1_Data = {
+        .humidity = 0.0f,
+        .temperature = 0.0f,
+        .jsonify = DHT_Jsonify
+    };
+
+    static DHT20_TaskParams_t hkDHT20_1_TaskParams = {
+        .i2c   = &hkI2C1,
+        .dht20 = &hkDHT20_1,
+        .data  = &hkDHT20_1_Data
+    };
+    // ------------------------------------------------------------------------
+
+
+    // ************************************************************************
+    // = DHT11 ===
+    // ------------------------------------------------------------------------
+    static u8 hkDHT11_0_RawData[5];
+    static DHT_Config_t hkDHT11_0 = {
+        .gpio    = hkDHT_PIN,
+        .rawData = hkDHT11_0_RawData,
+        .length  = sizeof(hkDHT11_0_RawData),
+        .status  = DHT_INIT,
+        .type    = DHT_11,
+        .pio     = hkDHT_PIO,
+        .sm      = hkDHT_PIO_SM
+    };
+
+    xDHT11_0_DataQueue = xQueueCreate(1, sizeof(DHT_DataPacket_t));
+    if(xDHT11_0_DataQueue == NULL) HFATAL("main(): Failed to create DHT11_0 data queue!");
+    hkDHT11_0.queue = xDHT11_0_DataQueue;
+
+    hkDHT11_0.dmaSemaphore = xSemaphoreCreateBinary();
+    if(hkDHT11_0.dmaSemaphore == NULL) HFATAL("main(): Failed to create DHT11_0 DMA semaphore!");
+
+    static DHT_DataPacket_t hkDHT11_0_Data = {
+        .humidity = 0.0f,
+        .temperature = 0.0f,
+        .jsonify = DHT_Jsonify
+    };
+
+    static DHT_TaskParams_t hkDHT11_0_TaskParams = {
+        .dht   = &hkDHT11_0,
+        .data  = &hkDHT11_0_Data
+    };
+    // ------------------------------------------------------------------------
+
+    // ************************************************************************
+    // = DHT22 ===
+    // ------------------------------------------------------------------------
+    static u8 hkDHT22_0_RawData[5];
+    static DHT_Config_t hkDHT22_0 = {
+        .gpio    = 14,
+        .rawData = hkDHT22_0_RawData,
+        .length  = sizeof(hkDHT22_0_RawData),
+        .status  = DHT_INIT,
+        .type    = DHT_22,
+        .pio     = pio2,
+        .sm      = 0
+    };
+
+    xDHT22_0_DataQueue = xQueueCreate(1, sizeof(DHT_DataPacket_t));
+    if(xDHT22_0_DataQueue == NULL) HFATAL("main(): Failed to create DHT22_0 data queue!");
+    hkDHT22_0.queue = xDHT22_0_DataQueue;
+
+    hkDHT22_0.dmaSemaphore = xSemaphoreCreateBinary();
+    if(hkDHT22_0.dmaSemaphore == NULL) HFATAL("main(): Failed to create DHT22_0 DMA semaphore!");
+
+    static DHT_DataPacket_t hkDHT22_0_Data = {
+        .humidity = 0.0f,
+        .temperature = 0.0f,
+        .jsonify = DHT_Jsonify
+    };
+
+    static DHT_TaskParams_t hkDHT22_0_TaskParams = {
+        .dht   = &hkDHT22_0,
+        .data  = &hkDHT22_0_Data
     };
     // ------------------------------------------------------------------------
 
@@ -298,38 +426,73 @@ void main(void) {
     // ************************************************************************
     // = RTOS ===
     // ------------------------------------------------------------------------
-    xSensorQueueSet = xQueueCreateSet(5);   // Number of sensors
+    xSensorQueueSet = xQueueCreateSet(9);   // Number of sensors
+
+    xSnapshotQueue = xQueueCreate(1, sizeof(Sensors_DataPacket_t));
+    if(xSnapshotQueue == NULL) HFATAL("main(): Failed to create xSnapshotQueue queue!");
+
+    xDisplayQueue = xQueueCreate(1, sizeof(Sensors_DataPacket_t));
+    if(xSnapshotQueue == NULL) HFATAL("main(): Failed to create xDisplayQueue queue!");
 
 
-    // - BME280 ---
+    // - BME280 ----
     xQueueAddToSet(xBME280_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vBME280_Task, "BME280_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_0_TaskParams, 1, NULL);
+    xTaskCreate(vBME280_Task, "BME280_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
 
     xQueueAddToSet(xBME280_1_DataQueue, xSensorQueueSet);
-    xTaskCreate(vBME280_Task, "BME280_1_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_1_TaskParams, 1, NULL);
-    // ------------
+    xTaskCreate(vBME280_Task, "BME280_1_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_1_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    // -------------
 
-    // - SGP30 ---
+    // - DHT20 -----
+    xQueueAddToSet(xDHT20_0_DataQueue, xSensorQueueSet);
+    xTaskCreate(vDHT20_Task, "DHT20_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT20_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+
+    xQueueAddToSet(xDHT20_1_DataQueue, xSensorQueueSet);
+    xTaskCreate(vDHT20_Task, "DHT20_1_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT20_1_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    // -------------
+
+    // - DHT11 -----
+    xQueueAddToSet(xDHT11_0_DataQueue, xSensorQueueSet);
+    xTaskCreate(vDHT_Task, "DHT11_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT11_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    // -------------
+
+    // - DHT22 -----
+    xQueueAddToSet(xDHT22_0_DataQueue, xSensorQueueSet);
+    xTaskCreate(vDHT_Task, "DHT22_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT22_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    // -------------
+
+    // - SGP30 -----
     xQueueAddToSet(xSGP30_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vSGP30_Task, "SGP30_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkSGP30_0_TaskParams, 1, NULL);
-    // ------------
+    xTaskCreate(vSGP30_Task, "SGP30_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkSGP30_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    // -------------
 
     // - DS18B20 ---
     xQueueAddToSet(xDS18B20_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vDS18B20_Task, "DS18B20_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDS18B20_0_TaskParams, 1, NULL);
-    // ------------
+    xTaskCreate(vDS18B20_Task, "DS18B20_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDS18B20_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    // -------------
 
     // - PMS5003 ---
     xQueueAddToSet(xPMS5003_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vPMS5003_Task, "PMS5003_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkPMS5003_0_TaskParams, 1, NULL);
-    // ------------
+    xTaskCreate(vPMS5003_Task, "PMS5003_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkPMS5003_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    // -------------
 
 
-    xTaskCreate(vDisplayTask, "Display_Task", (configMINIMAL_STACK_SIZE + 256), NULL, 2, NULL);
+    xTaskCreate(vDataCollectTask, "Collect_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, NULL);
+    xTaskCreate(vDataProcessTask, "Process_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, NULL);
 
-    HINFO("Starting RTOS scheduler");
+    xTaskCreate(vDataDisplayTask, "Display_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_HIGH, NULL);
+
+
+    HINFO("Starting RTOS scheduler...");
     vTaskStartScheduler();
 
-    while(1);
+    while(FOREVER) HFATAL("!!! RTOS SCHEDULER RETURNED !!!");   // It should never get here
     // ------------------------------------------------------------------------
+}
+
+
+void vApplicationMallocFailedHook(void) {
+    HFATAL("!!! MALLOC FAILED !!!");
+    HFATAL("!!! FreeRTOS heap exhausted !!!");
+    while(FOREVER) tight_loop_contents();
 }

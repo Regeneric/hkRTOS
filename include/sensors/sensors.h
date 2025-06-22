@@ -21,8 +21,12 @@ extern QueueHandle_t xPMS5003_0_DataQueue;
 extern QueueHandle_t xDS18B20_0_DataQueue;
 extern QueueHandle_t xDHT20_0_DataQueue;
 extern QueueHandle_t xDHT20_1_DataQueue;
+extern QueueHandle_t xDHT11_0_DataQueue;
+extern QueueHandle_t xDHT22_0_DataQueue;
 extern QueueHandle_t xBMP180_0_DataQueue;
 
+extern QueueHandle_t xSnapshotQueue;
+extern QueueHandle_t xDisplayQueue;
 
 typedef struct Average_DataPacket_t {
     f32 value;
@@ -30,34 +34,25 @@ typedef struct Average_DataPacket_t {
 } Average_DataPacket_t;
 
 typedef struct Sensors_DataPacket_t {
-    DHT_DataPacket_t     dht;
-    DS18B20_DataPacket_t ds18b20;
-    PMS5003_DataPacket_t pms5003;
-    SGP30_DataPacket_t   sgp30;
-    BME280_DataPacket_t  bme280; 
-    
+    DHT_DataPacket_t     dht_0;     // DHT20
+    DHT_DataPacket_t     dht_1;     // DHT20
+    DHT_DataPacket_t     dht_2;     // DHT11
+    DHT_DataPacket_t     dht_3;     // DHT22
+    DHT_DataPacket_t     dht_avg;
+
+    BME280_DataPacket_t  bme280_0;
+    BME280_DataPacket_t  bme280_1;
+    BME280_DataPacket_t  bme280_avg;
+
+    DS18B20_DataPacket_t ds18b20_0;
+    PMS5003_DataPacket_t pms5003_0;
+    SGP30_DataPacket_t   sgp30_0; 
+    // BMP180_DataPacket_t  bmp180_0;
+
+    // Averages from all sensors
     f32 temperature;
-    f32 humidity;
     f32 dewPoint;
-    f32 absHumidity;
+    f32 relativeHumidity;
+    f32 absoluteHumidity;
+    f32 pressure;
 } Sensors_DataPacket_t;
-
-static f32 hkWeightedAverage(Average_DataPacket_t* data, size_t len) {
-    // BME280  - weight 10
-    // DS18B20 - weight 10
-    // AHT20/DHT20 - weight 9
-    // DHT22 - weight 7
-    // DHT11 - weight 2   
-
-    if(len < 1) return -2.137f;
-
-    f32 sum = 0.0f;
-    u16 divider = 0.0f;
-
-    for(size_t i = 0; i < len; ++i) {
-        sum     += (data[i].value * data[i].weight);
-        divider += data[i].weight;
-    }
-
-    return sum/divider;
-}

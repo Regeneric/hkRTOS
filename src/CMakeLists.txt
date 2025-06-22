@@ -7,6 +7,8 @@ add_subdirectory(input)
 
 add_executable(${PROJECT_NAME}
     main.c
+    collect.c
+    process.c
     display.c
 )
 

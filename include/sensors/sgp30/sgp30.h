@@ -38,8 +38,6 @@ typedef struct SGP30_Config_t {
     QueueHandle_t queue;
 } SGP30_Config_t;
 
-// I know it's redundant, I just want to have some universal pattern around my code
-typedef char* (*json)(const void* self);
 typedef struct SGP30_DataPacket_t {
     u16  eco2;
     u16  tvoc;

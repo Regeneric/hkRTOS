@@ -2,7 +2,10 @@
 #include <defines.h>
 
 #ifdef HPLATFORM_ARM
-    #define HK_LOG_LEVEL                        LOG_DEBUG                       // TRACE | DEBUG | INFO | WARN | ERROR
+    #define HK_LOG_LEVEL                         LOG_DEBUG                       // TRACE | DEBUG | INFO | WARN | ERROR
+    #define hkTASK_PRIORITY_LOW                  1                               // For RTOS tasks
+    #define hkTASK_PRIORITY_MEDIUM               2                               // For RTOS tasks
+    #define hkTASK_PRIORITY_HIGH                 3                               // For RTOS tasks
 
     // Communication
     #define hkI2C_USE_SINGLE_I2C                 false                           // Use single or both uC I2Cs
@@ -23,7 +26,7 @@
         #define hkI2C_TWO                        i2c1                            // i2c0 or i2c1 ; Default: i2c1
         #define hkI2C_SDA_TWO                    18                              //              ; Default: 2
         #define hkI2C_SCL_TWO                    19                              //              ; Default: 3
-        #define hkI2C_SPEED_KHZ_TWO              1700U                           // 100 ; 400 ; 1000 ; 1700 ; 3400 ; 5000  -  Above 400 KHz use at own risk
+        #define hkI2C_SPEED_KHZ_TWO              1000U                           // 100 ; 400 ; 1000 ; 1700 ; 3400 ; 5000  -  Above 400 KHz use at own risk
         #define hkI2C_SPEED_TWO                 (hkI2C_SPEED_KHZ_TWO * 1000U)    // Conversion from KHz to Hz   
     #endif
     #define hkENABLE_WIFI                       true                            // Enable or disable WiFi module

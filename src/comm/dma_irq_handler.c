@@ -14,16 +14,37 @@ static u32 sgDMA_OneWire_RX_Channel = -1;
 static u32 sgDMA_OneWire_TX_Channel = -1;
 static OneWire_Config_t* sgOneWire_Config;
 
-static u32 sgDMA_DHT_Channel = -1;
-static DHT_Config_t* sgDHT_Config;
+// static u32 sgDMA_DHT_Channel = -1;
+// static DHT_Config_t* sgDHT_Config;
+
+#define MAX_DMA_CHANNELS 12
+static DHT_Config_t* dhtConfigsByChannel[MAX_DMA_CHANNELS] = {NULL};
 
 
 static void DMA_IRQ0_ISR() {
     // DHT11/22
-    if(sgDMA_DHT_Channel != -1 && dma_channel_get_irq0_status(sgDMA_DHT_Channel)) {
-        dma_hw->ints0 = (1u << sgDMA_DHT_Channel);
-        DMA_DHT_ISR();
+    // if(sgDMA_DHT_Channel != -1 && dma_channel_get_irq0_status(sgDMA_DHT_Channel)) {
+    //     dma_hw->ints0 = (1u << sgDMA_DHT_Channel);
+    //     DMA_DHT_ISR();
+    // }
+
+    // DHT11/22
+    for(u32 channel = 0; channel < MAX_DMA_CHANNELS; ++channel) {
+        if(dma_irqn_get_channel_status(0, channel)) {
+            dma_irqn_acknowledge_channel(0, channel);
+
+            if(dhtConfigsByChannel[channel] != NULL) {
+                DHT_Config_t* config = dhtConfigsByChannel[channel];
+                
+                BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+                if (config->dmaSemaphore != NULL) {
+                    xSemaphoreGiveFromISR(config->dmaSemaphore, &xHigherPriorityTaskWoken);
+                    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+                }
+            }
+        }
     }
+
 }
 
 static void DMA_IRQ1_ISR() {
@@ -71,9 +92,11 @@ void DMA_OneWire_TX_Register(void* config, u32 channel) {
 }
 
 void DMA_DHT_Register(void* config, u32 channel) {
-    sgDHT_Config = (DHT_Config_t*)config;
-    sgDMA_DHT_Channel = channel;
-    sgDHT_Config = config;
+    // sgDHT_Config = (DHT_Config_t*)config;
+    // sgDMA_DHT_Channel = channel;
+    // sgDHT_Config = config;
+
+    if(channel < MAX_DMA_CHANNELS) dhtConfigsByChannel[channel] = (DHT_Config_t*)config;
 }
 
 
@@ -94,8 +117,13 @@ void DMA_OneWire_ISR() {
     }
 }
 
-void DMA_DHT_ISR() {
-    if(sgDHT_Config != NULL) {
-        sgDHT_Config->status = DHT_READ_SUCCESS;
-    }
-}
+// void DMA_DHT_ISR() {
+//     if(sgDHT_Config != NULL) {
+//         sgDHT_Config->status = DHT_READ_SUCCESS;
+
+//         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+//         xSemaphoreGiveFromISR(sgDHT_Config->dmaSemaphore, &xHigherPriorityTaskWoken);
+
+//         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+//     }
+// }

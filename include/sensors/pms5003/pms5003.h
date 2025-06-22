@@ -27,8 +27,6 @@ typedef struct PMS5003_Config_t {
     QueueHandle_t queue;
 } PMS5003_Config_t;
 
-// I know it's redundant, I just want to have some universal pattern around my code
-typedef char* (*json)(const void* self);
 typedef struct PMS5003_DataPacket_t {
     u16  pm1;
     u16  pm2_5;

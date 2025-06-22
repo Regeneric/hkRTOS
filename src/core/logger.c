@@ -35,8 +35,8 @@ void hkLogOutput(LogLevel_t level, const char* message, ...) {
     snprintf(logMessage, sizeof(logMessage), "%s%s\n", currentLogLevel, logBuffer);
     
     HPRINT(logMessage);                 // SEGGER print shorthand macro
-    if(isError) printf(logMessage);     // Go to stdout, for now
-    else printf(logMessage);
+    if(isError) printf("%s", logMessage);
+    else printf("%s", logMessage);
     
     return;
 }

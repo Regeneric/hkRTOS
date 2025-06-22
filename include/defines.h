@@ -72,6 +72,8 @@ typedef double              f64;
 typedef int8_t              b8;
 typedef int32_t             b32;
 
+typedef char* (*json)(const void* self);
+
 
 #if defined(__clang__) || defined(__gcc__) || defined(__avr_gcc__) || defined(__arm_gcc__) || defined(__riscv_gcc__)
     #define STATIC_ASSERT _Static_assert

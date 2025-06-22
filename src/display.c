@@ -15,58 +15,102 @@
 #include <sensors/sgp30/sgp30.h>
 #include <sensors/bme280/bme280.h>
 
-void vDisplayTask(void* pvParameters) {
-    while(1) {
-        QueueSetMemberHandle_t xActivatedMember;
-        xActivatedMember = xQueueSelectFromSet(xSensorQueueSet, portMAX_DELAY);
+void vDataDisplayTask(void* pvParameters) {
+    HTRACE("display.c -> RTOS:vDataDisplayTask(void*):void");
 
-        // - BME280 ---
-        if(xActivatedMember == xBME280_0_DataQueue) {
-            BME280_DataPacket_t hkBME280_0_Data;
-            xQueueReceive(xBME280_0_DataQueue, &hkBME280_0_Data, 0);
-            HDEBUG("(BME280_0) TEMPERATURE : %.2f *C"  , hkBME280_0_Data.temperature);
-            HDEBUG("(BME280_0) DEW POINT   : %.2f *C"  , hkBME280_0_Data.dewPoint);
-            HDEBUG("(BME280_0) HUMIDITY    : %.2f %%RH", hkBME280_0_Data.humidity);
-            HDEBUG("(BME280_0) ABS HUMIDITY: %.2f %%AH", hkBME280_0_Data.absoluteHumidity);
-            HDEBUG("(BME280_0) PRESSURE    : %.1f hPA" , hkBME280_0_Data.pressure);
+    Sensors_DataPacket_t hkSensors_DataPacket = {0};
+    UBaseType_t coreID = portGET_CORE_ID();
 
-        }   
-        if(xActivatedMember == xBME280_1_DataQueue) {
-            BME280_DataPacket_t hkBME280_1_Data;
-            xQueueReceive(xBME280_1_DataQueue, &hkBME280_1_Data, 0);
-            HDEBUG("(BME280_1) TEMPERATURE : %.2f *C"  , hkBME280_1_Data.temperature);
-            HDEBUG("(BME280_1) DEW POINT   : %.2f *C"  , hkBME280_1_Data.dewPoint);
-            HDEBUG("(BME280_1) HUMIDITY    : %.2f %%RH", hkBME280_1_Data.humidity);
-            HDEBUG("(BME280_1) ABS HUMIDITY: %.2f %%AH", hkBME280_1_Data.absoluteHumidity);
-            HDEBUG("(BME280_1) PRESSURE    : %.1f hPA" , hkBME280_1_Data.pressure);
+    while(FOREVER) {
+        HTRACE("vDataDisplayTask(): Running on core {%d}", (u16)coreID);
+
+        if(xQueueReceive(xDisplayQueue, &hkSensors_DataPacket, portMAX_DELAY) == pdPASS) {
+            // - BME280 ----------------------
+            HDEBUG("(BME280_0) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.bme280_0.temperature);
+            HDEBUG("(BME280_0) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.bme280_0.dewPoint);
+            HDEBUG("(BME280_0) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.bme280_0.humidity);
+            HDEBUG("(BME280_0) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.bme280_0.absoluteHumidity);
+            HDEBUG("(BME280_0) PRESSURE      : %.1f hPA" , hkSensors_DataPacket.bme280_0.pressure);
+            
+            HDEBUG("(BME280_1) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.bme280_1.temperature);
+            HDEBUG("(BME280_1) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.bme280_1.dewPoint);
+            HDEBUG("(BME280_1) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.bme280_1.humidity);
+            HDEBUG("(BME280_1) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.bme280_1.absoluteHumidity);
+            HDEBUG("(BME280_1) PRESSURE      : %.1f hPA" , hkSensors_DataPacket.bme280_1.pressure);
+
+            HDEBUG("(BME__AVG) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.bme280_avg.temperature);
+            HDEBUG("(BME__AVG) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.bme280_avg.dewPoint);
+            HDEBUG("(BME__AVG) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.bme280_avg.humidity);
+            HDEBUG("(BME__AVG) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.bme280_avg.absoluteHumidity);
+            HDEBUG("(BME__AVG) PRESSURE      : %.1f hPA" , hkSensors_DataPacket.bme280_avg.pressure);
+            // -------------------------------
+
+            // - DHT20 -----------------------
+            HDEBUG("(DHT20__0) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.dht_0.temperature);
+            HDEBUG("(DHT20__0) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.dht_0.dewPoint);
+            HDEBUG("(DHT20__0) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.dht_0.humidity);
+            HDEBUG("(DHT20__0) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.dht_0.absoluteHumidity);
+
+            HDEBUG("(DHT20__1) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.dht_1.temperature);
+            HDEBUG("(DHT20__1) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.dht_1.dewPoint);
+            HDEBUG("(DHT20__1) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.dht_1.humidity);
+            HDEBUG("(DHT20__1) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.dht_1.absoluteHumidity);
+
+            HDEBUG("(DHT__AVG) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.dht_avg.temperature);
+            HDEBUG("(DHT__AVG) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.dht_avg.dewPoint);
+            HDEBUG("(DHT__AVG) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.dht_avg.humidity);
+            HDEBUG("(DHT__AVG) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.dht_avg.absoluteHumidity);
+            // -------------------------------
+
+            // - DHT11 -----------------------
+            HDEBUG("(DHT11__0) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.dht_2.temperature);
+            HDEBUG("(DHT11__0) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.dht_2.dewPoint);
+            HDEBUG("(DHT11__0) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.dht_2.humidity);
+            HDEBUG("(DHT11__0) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.dht_2.absoluteHumidity);
+            // -------------------------------
+
+            // - DHT22 -----------------------
+            HDEBUG("(DHT22__0) TEMPERATURE   : %.2f *C"  , hkSensors_DataPacket.dht_3.temperature);
+            HDEBUG("(DHT22__0) DEW POINT     : %.2f *C"  , hkSensors_DataPacket.dht_3.dewPoint);
+            HDEBUG("(DHT22__0) HUMIDITY      : %.2f %%RH", hkSensors_DataPacket.dht_3.humidity);
+            HDEBUG("(DHT22__0) ABS HUMIDITY  : %.2f %%AH", hkSensors_DataPacket.dht_3.absoluteHumidity);
+            // -------------------------------
+
+            // - SGP30 -----------------------
+            HDEBUG("(SGP30__0) eCO2          : %d ppm", hkSensors_DataPacket.sgp30_0.eco2);
+            HDEBUG("(SGP30__0) TVOC          : %d ppb", hkSensors_DataPacket.sgp30_0.tvoc);
+            // -------------------------------
+
+            // - DS18B20 ---------------------
+            HDEBUG("(DS18B20 ) TEMPERATURE   : %.2f *C", hkSensors_DataPacket.ds18b20_0.temperature);
+            // -------------------------------
+
+            // - PMS5003 ---------------------
+            HDEBUG("(PMS5003 ) PM1           : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm1);
+            HDEBUG("(PMS5003 ) PM2.5         : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm2_5);
+            HDEBUG("(PMS5003 ) PM10          : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm10);
+            // -------------------------------
+
+
+            // - Average Temperature ---------
+            HDEBUG("AVERAGE TEMPERATURE      : %.2f *C", hkSensors_DataPacket.temperature);
+            // -------------------------------
+
+            // - Average Dew Point -----------
+            HDEBUG("AVERAGE DEW POINT        : %.2f *C", hkSensors_DataPacket.dewPoint);
+            // -------------------------------
+
+            // - Average Relative Humidity ---
+            HDEBUG("AVERAGE RELATIVE HUMIDITY: %.2f %%RH", hkSensors_DataPacket.relativeHumidity);
+            // -------------------------------
+
+            // - Average Absolute Humidity ---
+            HDEBUG("AVERAGE ABSOLUTE HUMIDITY: %.2f %%AH", hkSensors_DataPacket.absoluteHumidity);
+            // -------------------------------
+        
+            // - Average Pressure ------------
+            HDEBUG("AVERAGE PRESSURE         : %.2f hPA", hkSensors_DataPacket.pressure);
+            // -------------------------------
         }
-        // ------------
-
-        // - SGP30 ---
-        if(xActivatedMember == xSGP30_0_DataQueue) {
-            SGP30_DataPacket_t hkSGP30_0_Data;
-            xQueueReceive(xSGP30_0_DataQueue, &hkSGP30_0_Data, 0);
-            HDEBUG("(SGP30__0) eCO2        : %d ppm", hkSGP30_0_Data.eco2);
-            HDEBUG("(SGP30__0) TVOC        : %d ppb", hkSGP30_0_Data.tvoc);
-        } 
-        // ------------
-
-        // - DS18B20 ---
-        if(xActivatedMember == xDS18B20_0_DataQueue) {
-            DS18B20_DataPacket_t hkDS18B20_0_Data;
-            xQueueReceive(xDS18B20_0_DataQueue, &hkDS18B20_0_Data, 0);
-            HDEBUG("(DS18B20 ) TEMPERATURE : %.2f *C", hkDS18B20_0_Data.temperature);
-        } 
-        // ------------
-
-        // - PMS5003 ---
-        if(xActivatedMember == xPMS5003_0_DataQueue) {
-            PMS5003_DataPacket_t hkPMS5003_0_Data;
-            xQueueReceive(xPMS5003_0_DataQueue, &hkPMS5003_0_Data, 0);
-            HDEBUG("(PMS5003 ) PM1         : %d ug/m3", hkPMS5003_0_Data.pm1);
-            HDEBUG("(PMS5003 ) PM2.5       : %d ug/m3", hkPMS5003_0_Data.pm2_5);
-            HDEBUG("(PMS5003 ) PM10        : %d ug/m3", hkPMS5003_0_Data.pm10);
-        } 
-        // ------------
     }
 }

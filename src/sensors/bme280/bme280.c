@@ -163,7 +163,8 @@ static i32 BME280_ReadCalibrationData(I2C_Config_t* i2c, BME280_Config_t* config
 
 i32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config) {
     HTRACE("bme280.c -> BME280_Init(I2C_Config_t*, BME280_Config_t*):i32");
-    HINFO("BME280 initializing...");
+    HINFO("Initializing BME280 sensor...");
+    HINFO("Calibrating BME280 sensor...");
 
     memset(config->rawData, 0, config->length);
 
@@ -171,7 +172,7 @@ i32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config) {
     if(status == PICO_ERROR_GENERIC) {
         HWARN("BME280_Init(): Could not read calibration data");
         return status;
-    } else HINFO("BME280 calibration complete");
+    } else HINFO("BME280 sensor has been calibrated.");
 
     // Humidity
     u8 commands[2];
@@ -234,7 +235,7 @@ i32 BME280_Init(I2C_Config_t* i2c, BME280_Config_t* config) {
     mutex_exit(i2c->mutex);
     HTRACE("BME280_Init(): I2C mutex released");
 
-    HINFO("BME280 has been configured");
+    HINFO("BME280 sensor has been initialized.");
     return true;    // 1 for success, -1 for error
 }
 
@@ -397,14 +398,14 @@ BME280_DataPacket_t BME280_AverageData(BME280_DataPacket_t* data, size_t len) {
 
 
 void vBME280_Task(void* pvParameters) {
-    HTRACE("bme280.c -> vBME280_Task(void*):void");
+    HTRACE("bme280.c -> RTOS:vBME280_Task(void*):void");
 
     BME280_TaskParams_t* params = (BME280_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();
 
     // Error loop
     while(BME280_Init(params->i2c, params->bme280) != true) {
-        HFATAL("vBME280_Task(): BME280 failed to initialize! Retrying in 10 seconds...");
+        HERROR("vBME280_Task(): BME280 failed to initialize! Retrying in 10 seconds...");
         vTaskDelay(pdMS_TO_TICKS(10000));
     } 
     

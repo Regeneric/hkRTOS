@@ -46,10 +46,15 @@ static i32 SGP30_WriteCommand(I2C_Config_t* i2c, SGP30_Config_t* config, u8 comm
 
 i32 SGP30_Init(I2C_Config_t* i2c, SGP30_Config_t* config) {
     HTRACE("sgp30.c -> SGP30_Init(I2C_Config_t*, SGP30_Config_t*):i32");
-    HINFO("SGP30 initializing...");
+    HINFO("Initializing SGP30 sensor...");
 
     memset(config->rawData, 0, config->length);
-    return SGP30_WriteCommand(i2c, config, SGP30_INIT);
+    
+    i32 status = SGP30_WriteCommand(i2c, config, SGP30_INIT);
+    if(status != PICO_ERROR_GENERIC) HINFO("SGP30 sensor has been initalized.");
+    else HINFO("SGP30 sensor could not be initalized.");
+
+    return status; 
 }
 
 
@@ -74,8 +79,8 @@ i32 SGP30_Read(I2C_Config_t* i2c, SGP30_Config_t* config) {
     i32 status = i2c_read_blocking(i2c->i2c, config->address, config->rawData, config->length, false);
     if(status == PICO_ERROR_GENERIC) {
         HWARN("SGP30_Read(): Could not start sensor data read");
-        mutex_exit(i2c->mutex);
         
+        mutex_exit(i2c->mutex);
         HTRACE("SGP30_Read(): I2C mutex released");
         
         return status;
@@ -194,14 +199,14 @@ i32 SGP30_ReadBlockingHumidComp(I2C_Config_t* i2c, SGP30_Config_t* config, void*
 
 
 void vSGP30_Task(void* pvParameters) {
-    HTRACE("sgp30.c -> vSGP30_Task(void*):void");
+    HTRACE("sgp30.c -> RTOS:vSGP30_Task(void*):void");
 
     SGP30_TaskParams_t* params = (SGP30_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();
 
     // Error loop
     while(SGP30_Init(params->i2c, params->sgp30) != true) {
-        HFATAL("vSGP30_Task(): SGP30 failed to initialize! Retrying in 10 seconds...");
+        HERROR("vSGP30_Task(): SGP30 failed to initialize! Retrying in 10 seconds...");
         vTaskDelay(pdMS_TO_TICKS(10000));
     } 
 

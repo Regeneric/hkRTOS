@@ -21,7 +21,7 @@ static u32 sgJMP_ResetInstruction = 0;
 
 void OneWire_Init(OneWire_Config_t* config) {
     HTRACE("onewire.c -> OneWire_Init(OneWire_Config_t*):void");
-    if(config->status == ONEW_INIT) HINFO("Reinitalizing 1-Wire interface...");
+    if(config->status == ONEW_INIT) HINFO("Initalizing 1-Wire interface...");
 
     sgOW_SM = pio_claim_unused_sm(config->pio, true);
     if(sgOW_SM == -1) {
@@ -37,6 +37,8 @@ void OneWire_Init(OneWire_Config_t* config) {
 
     sgJMP_ResetInstruction = onewire_reset_instr(sgOW_SM_Offset);
     config->status = ONEW_INIT_SUCCESS;
+
+    HINFO("1-Wire interface has be initialized.");
     return;
 }
 

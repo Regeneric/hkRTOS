@@ -125,7 +125,7 @@ b8 PMS5003_Read(UART_Config_t* uart, PMS5003_Config_t* config) {
 
 
 void vPMS5003_Task(void* pvParameters) {
-    HTRACE("pms5003.c -> vPMS5003_Task(void*):void");
+    HTRACE("pms5003.c -> RTOS:vPMS5003_Task(void*):void");
 
     PMS5003_TaskParams_t* params = (PMS5003_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();

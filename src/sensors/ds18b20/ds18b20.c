@@ -211,7 +211,7 @@ b8 DS18B20_SetResolution(OneWire_Config_t* ow, u8 resolution) {
             break;
     }
 
-    HINFO("Setting DS18B20 resolution to %d-bit", resolution);
+    HINFO("Setting DS18B20 resolution to %d-bit...", resolution);
 
     if(!OneWire_Reset(ow)) return false;
     OneWire_WriteByte(ow, ONEW_SKIP_ROM);
@@ -226,21 +226,21 @@ b8 DS18B20_SetResolution(OneWire_Config_t* ow, u8 resolution) {
     OneWire_WriteByte(ow, DS18B20_COPY_SCRATCHPAD);
     sleep_ms(12);
 
-    HINFO("Resolution change complete.");
+    HINFO("DS18B20 resolution change complete.");
     return true;
 }
 #endif
 
 
 void vDS18B20_Task(void* pvParameters) {
-    HTRACE("ds18b20.c -> vDS18B20_Task(void*):void");
+    HTRACE("ds18b20.c -> RTOS:vDS18B20_Task(void*):void");
 
     DS18B20_TaskParams_t* params = (DS18B20_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();
 
     // Error loop
     while(DS18B20_SetResolution(params->ow, params->ds18b20->resolution) != true) {
-        HFATAL("vDS18B20_Task(): DS18B20 failed to initialize! Retrying in 10 seconds...");
+        HERROR("vDS18B20_Task(): DS18B20 failed to initialize! Retrying in 10 seconds...");
         vTaskDelay(pdMS_TO_TICKS(10000));
     } 
 
