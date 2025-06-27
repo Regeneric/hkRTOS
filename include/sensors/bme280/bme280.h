@@ -2,6 +2,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
+#include <event_groups.h>
 
 #include <defines.h>
 #include <stdio.h>
@@ -10,6 +11,9 @@
 #include <comm/i2c.h>
 
 #define hkBM280_JSON_BUFFER 128
+
+#define hkBME280_BIT_ENABLED (1 << hkBME280_USE_SENSOR)
+
 
 enum {
     BME280_INIT,

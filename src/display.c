@@ -15,8 +15,19 @@
 #include <sensors/sgp30/sgp30.h>
 #include <sensors/bme280/bme280.h>
 
+
+extern EventGroupHandle_t xSystemStateEventGroup;
 void vDataDisplayTask(void* pvParameters) {
     HTRACE("display.c -> RTOS:vDataDisplayTask(void*):void");
+
+    xEventGroupWaitBits(
+        xSystemStateEventGroup,      // The event group to wait on
+        BIT_MODE_NORMAL_OPERATION,   // The bit to wait for
+        pdFALSE,                     // Don't clear the bit on exit
+        pdFALSE,                     // Wait for ALL bits (we only have one)
+        portMAX_DELAY                // Wait forever
+    );
+
 
     Sensors_DataPacket_t hkSensors_DataPacket = {0};
     UBaseType_t coreID = portGET_CORE_ID();
@@ -86,9 +97,9 @@ void vDataDisplayTask(void* pvParameters) {
             // -------------------------------
 
             // - PMS5003 ---------------------
-            HDEBUG("(PMS5003 ) PM1           : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm1);
-            HDEBUG("(PMS5003 ) PM2.5         : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm2_5);
-            HDEBUG("(PMS5003 ) PM10          : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm10);
+            HDEBUG("(PMS_5003) PM1           : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm1);
+            HDEBUG("(PMS_5003) PM2.5         : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm2_5);
+            HDEBUG("(PMS_5003) PM10          : %d ug/m3", hkSensors_DataPacket.pms5003_0.pm10);
             // -------------------------------
 
 

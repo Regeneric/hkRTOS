@@ -35,9 +35,13 @@ static f32 hkWeightedAverage(Average_DataPacket_t* data, size_t len) {
     // ENS160 - weight 9
     // SGP30  - weight 4
 
+    if(data == NULL) {
+        HERROR("hkWeightedAverage(): No data to process!");
+        return -1.0f;
+    }
     if(len < 1)  {
         HERROR("hkWeightedAverage(): Data length is less than 1!");
-        return -999.9f;
+        return data[0].value;
     }
     if(len == 1) {
         HWARN("hkWeightedAverage(): Data length is 1, weighted average will not be calculated.");
@@ -55,8 +59,19 @@ static f32 hkWeightedAverage(Average_DataPacket_t* data, size_t len) {
     return sum/divider;
 }
 
+
+extern EventGroupHandle_t xSystemStateEventGroup;
 void vDataProcessTask(void* pvParameters) {
     HTRACE("collect.c -> RTOS:vDataProcessTask(void*):void");
+    
+    xEventGroupWaitBits(
+        xSystemStateEventGroup,      // The event group to wait on
+        BIT_MODE_NORMAL_OPERATION,   // The bit to wait for
+        pdFALSE,                     // Don't clear the bit on exit
+        pdFALSE,                     // Wait for ALL bits (we only have one)
+        portMAX_DELAY                // Wait forever
+    );
+
 
     Sensors_DataPacket_t hkSensors_DataPacket = {0};
     UBaseType_t coreID = portGET_CORE_ID();

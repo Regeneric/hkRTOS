@@ -33,6 +33,5 @@ target_link_libraries(libdht20
         hardware_dma
         hardware_irq
 
-        FreeRTOS-Kernel
-        FreeRTOS-Kernel-Heap4 
+        FreeRTOS-Kernel-Heap4
 )

@@ -42,5 +42,5 @@ target_link_libraries(libdht11_22
         hardware_dma
         hardware_irq
 
-        FreeRTOS-Kernel
+        FreeRTOS-Kernel-Heap4
 )

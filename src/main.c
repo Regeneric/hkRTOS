@@ -14,6 +14,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
+#include <event_groups.h>
 
 // Segger
 #include <SEGGER_SYSVIEW.h>
@@ -63,11 +64,33 @@ QueueHandle_t xBMP180_0_DataQueue;
 QueueHandle_t xSnapshotQueue;
 QueueHandle_t xDisplayQueue;
 
+
+TaskHandle_t hBME280_0_Task;
+TaskHandle_t hBME280_1_Task;
+TaskHandle_t hDHT20_0_Task;
+TaskHandle_t hDHT20_1_Task;
+TaskHandle_t hDHT11_0_Task;
+TaskHandle_t hDHT22_0_Task;
+TaskHandle_t hSGP30_0_Task;
+TaskHandle_t hDS18B20_0_Task;
+TaskHandle_t hPMS5003_0_Task;
+
+TaskHandle_t hDataCollect_Task;
+TaskHandle_t hDataProcess_Task;
+TaskHandle_t hDataDisplay_Task;
+
+EventGroupHandle_t xSystemStateEventGroup;
+
+
 extern void vDHT_Task(void* pvParameters);
+
+extern void vSystemManagerTask(void* pvParameters);
 
 extern void vDataCollectTask(void* pvParameters);
 extern void vDataProcessTask(void* pvParameters);
 extern void vDataDisplayTask(void* pvParameters);
+
+void vMonitorTask(void *pvParameters);
 
 
 void main(void) {
@@ -131,6 +154,26 @@ void main(void) {
         .status  = ONEW_INIT,
         .bitMode = 8
     }; OneWire_Init(&hkOneWire0);
+    // ------------------------------------------------------------------------
+
+
+    // ************************************************************************
+    // = WiFi ===
+    // ------------------------------------------------------------------------
+    static WIFI_Config_t hkWiFi0 = {
+        .ssid      = hkWIFI_SSID,
+        .password  = hkWIFI_PASS,
+        .authType  = CYW43_AUTH_WPA2_AES_PSK,
+        .country   = CYW43_COUNTRY_POLAND,
+        .ipAddress = NULL,
+        .ipMask    = NULL,
+        .ipGateway = NULL
+    };
+
+    static WiFi_TaskParams_t hkWiFi0_TaskParams = {
+        .i2c  = &hkI2C0,
+        .wifi = &hkWiFi0 
+    };
     // ------------------------------------------------------------------------
 
 
@@ -202,7 +245,7 @@ void main(void) {
     // ------------------------------------------------------------------------
     static u8 hkDHT20_0_RawData[7];
     static DHT20_Config_t hkDHT20_0 = {
-        .address = 0x38,
+        .address = hkDHT20_ADDRESS,
         .rawData = hkDHT20_0_RawData,
         .length  = sizeof(hkDHT20_0_RawData)
     };
@@ -226,7 +269,7 @@ void main(void) {
 
     static u8 hkDHT20_1_RawData[7];
     static DHT20_Config_t hkDHT20_1 = {
-        .address = 0x38,
+        .address = hkDHT20_ADDRESS,
         .rawData = hkDHT20_1_RawData,
         .length  = sizeof(hkDHT20_1_RawData)
     };
@@ -282,12 +325,13 @@ void main(void) {
     };
     // ------------------------------------------------------------------------
 
+
     // ************************************************************************
     // = DHT22 ===
     // ------------------------------------------------------------------------
     static u8 hkDHT22_0_RawData[5];
     static DHT_Config_t hkDHT22_0 = {
-        .gpio    = 14,
+        .gpio    = 26,
         .rawData = hkDHT22_0_RawData,
         .length  = sizeof(hkDHT22_0_RawData),
         .status  = DHT_INIT,
@@ -434,63 +478,150 @@ void main(void) {
     xDisplayQueue = xQueueCreate(1, sizeof(Sensors_DataPacket_t));
     if(xSnapshotQueue == NULL) HFATAL("main(): Failed to create xDisplayQueue queue!");
 
+    xSystemStateEventGroup = xEventGroupCreate();
+    if(xSystemStateEventGroup == NULL) HFATAL("main(): Failed to create event group!");
+
+
+
+    // - System Settings ------
+    xTaskCreate(vSystemManagerTask, "System_Manager_Task", (configMINIMAL_STACK_SIZE + 256), NULL, (hkTASK_PRIORITY_HIGH + 1), NULL);
+    xTaskCreate(vWifiManagerTask  , "WiFi_Manager_Task"  , (configMINIMAL_STACK_SIZE + 256), &hkWiFi0_TaskParams, (hkTASK_PRIORITY_HIGH + 1), NULL);
+    // ------------------------
+
 
     // - BME280 ----
     xQueueAddToSet(xBME280_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vBME280_Task, "BME280_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vBME280_Task, "BME280_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_0_TaskParams, hkTASK_PRIORITY_LOW, &hBME280_0_Task);
 
     xQueueAddToSet(xBME280_1_DataQueue, xSensorQueueSet);
-    xTaskCreate(vBME280_Task, "BME280_1_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_1_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vBME280_Task, "BME280_1_Task", (configMINIMAL_STACK_SIZE + 256), &hkBME280_1_TaskParams, hkTASK_PRIORITY_LOW, &hBME280_1_Task);
     // -------------
 
     // - DHT20 -----
     xQueueAddToSet(xDHT20_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vDHT20_Task, "DHT20_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT20_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vDHT20_Task, "DHT20_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT20_0_TaskParams, hkTASK_PRIORITY_LOW, &hDHT20_0_Task);
 
     xQueueAddToSet(xDHT20_1_DataQueue, xSensorQueueSet);
-    xTaskCreate(vDHT20_Task, "DHT20_1_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT20_1_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vDHT20_Task, "DHT20_1_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT20_1_TaskParams, hkTASK_PRIORITY_LOW, &hDHT20_1_Task);
     // -------------
 
-    // - DHT11 -----
+    // - DHT11/22 -----
     xQueueAddToSet(xDHT11_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vDHT_Task, "DHT11_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT11_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
-    // -------------
-
-    // - DHT22 -----
+    xTaskCreate(vDHT_Task, "DHT11_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT11_0_TaskParams, hkTASK_PRIORITY_LOW, &hDHT11_0_Task);
+    
     xQueueAddToSet(xDHT22_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vDHT_Task, "DHT22_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT22_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vDHT_Task, "DHT22_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDHT22_0_TaskParams, hkTASK_PRIORITY_LOW, &hDHT22_0_Task);
     // -------------
 
     // - SGP30 -----
     xQueueAddToSet(xSGP30_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vSGP30_Task, "SGP30_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkSGP30_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vSGP30_Task, "SGP30_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkSGP30_0_TaskParams, hkTASK_PRIORITY_LOW, &hSGP30_0_Task);
     // -------------
 
     // - DS18B20 ---
     xQueueAddToSet(xDS18B20_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vDS18B20_Task, "DS18B20_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDS18B20_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vDS18B20_Task, "DS18B20_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkDS18B20_0_TaskParams, hkTASK_PRIORITY_LOW, &hDS18B20_0_Task);
     // -------------
 
     // - PMS5003 ---
     xQueueAddToSet(xPMS5003_0_DataQueue, xSensorQueueSet);
-    xTaskCreate(vPMS5003_Task, "PMS5003_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkPMS5003_0_TaskParams, hkTASK_PRIORITY_LOW, NULL);
+    xTaskCreate(vPMS5003_Task, "PMS5003_0_Task", (configMINIMAL_STACK_SIZE + 256), &hkPMS5003_0_TaskParams, hkTASK_PRIORITY_LOW, &hPMS5003_0_Task);
     // -------------
 
 
-    xTaskCreate(vDataCollectTask, "Collect_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, NULL);
-    xTaskCreate(vDataProcessTask, "Process_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, NULL);
+    // - Data Pipeline ---
+    xTaskCreate(vDataCollectTask, "Collect_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, &hDataCollect_Task);
+    xTaskCreate(vDataProcessTask, "Process_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, &hDataProcess_Task);
 
-    xTaskCreate(vDataDisplayTask, "Display_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_HIGH, NULL);
+    xTaskCreate(vDataDisplayTask, "Display_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_HIGH  , &hDataDisplay_Task);
+    // -------------------
+
+
+    // - Debug ---
+    // xTaskCreate(vMonitorTask, "Monitor_Task", configMINIMAL_STACK_SIZE, NULL, hkTASK_PRIORITY_LOW, NULL);
+    // -----------
+
 
 
     HINFO("Starting RTOS scheduler...");
     vTaskStartScheduler();
 
-    while(FOREVER) HFATAL("!!! RTOS SCHEDULER RETURNED !!!");   // It should never get here
+    HFATAL("!!! RTOS SCHEDULER RETURNED !!!");   // It should never get here
+    while(FOREVER) tight_loop_contents();
     // ------------------------------------------------------------------------
 }
 
 
+
+
+void vMonitorTask(void *pvParameters) {
+    UBaseType_t hwm;
+
+    while(FOREVER) {
+        HDEBUG("--- Task Stack High Water Marks (words remaining) ---");
+
+        // - BME280 ---
+        hwm = uxTaskGetStackHighWaterMark(hBME280_0_Task);
+        HDEBUG("BME280_0_Task: %u words free", hwm);
+
+        hwm = uxTaskGetStackHighWaterMark(hBME280_1_Task);
+        HDEBUG("BME280_1_Task: %u words free", hwm);
+        // ------------
+
+        // - DHT20 ---
+        hwm = uxTaskGetStackHighWaterMark(hDHT20_0_Task);
+        HDEBUG("DHT20_0_Task: %u words free", hwm);
+
+        hwm = uxTaskGetStackHighWaterMark(hDHT20_1_Task);
+        HDEBUG("DHT20_1_Task: %u words free", hwm);
+        // -----------
+
+        // - DHT11/22 ---
+        hwm = uxTaskGetStackHighWaterMark(hDHT11_0_Task);
+        HDEBUG("DHT11_0_Task: %u words free", hwm);
+
+        hwm = uxTaskGetStackHighWaterMark(hDHT22_0_Task);
+        HDEBUG("DHT22_0_Task: %u words free", hwm);
+        // -----------
+
+        // - SGP30 ---
+        hwm = uxTaskGetStackHighWaterMark(hSGP30_0_Task);
+        HDEBUG("SGP30_0_Task: %u words free", hwm);
+        // -----------
+
+        // - DS18B20 ---
+        hwm = uxTaskGetStackHighWaterMark(hDS18B20_0_Task);
+        HDEBUG("DS18B20_0_Task: %u words free", hwm);
+        // -------------
+
+        // - PMS5003 ---
+        hwm = uxTaskGetStackHighWaterMark(hPMS5003_0_Task);
+        HDEBUG("PMS5003_0_Task: %u words free", hwm);
+        // -------------
+
+
+        // - Collect ---
+        hwm = uxTaskGetStackHighWaterMark(hDataCollect_Task);
+        HDEBUG("DataCollect_Task: %u words free", hwm);
+        // -----------
+
+        // - Process ---
+        hwm = uxTaskGetStackHighWaterMark(hDataProcess_Task);
+        HDEBUG("DataProcess_Task: %u words free", hwm);
+        // -----------
+
+        // - Display ---
+        hwm = uxTaskGetStackHighWaterMark(hDataDisplay_Task);
+        HDEBUG("DataDisplay_Task: %u words free", hwm);
+        // -----------
+
+
+        vTaskDelay(pdMS_TO_TICKS(10000));
+    }
+}
+
+
+// RTOS hooks
 void vApplicationMallocFailedHook(void) {
     HFATAL("!!! MALLOC FAILED !!!");
     HFATAL("!!! FreeRTOS heap exhausted !!!");

@@ -78,6 +78,7 @@
             #endif
         #endif
     #endif
+
     #define hkBME280_USE_SENSOR                 true                            // Decide if we want to use BME280
     #if hkBME280_USE_SENSOR
         #define hkBME280_USE_I2C                true                            // true - i2c ; false - spi
@@ -85,6 +86,7 @@
             #define hkBME280_ADDRESS            0x76    // or 0x77              // I2C address
         #endif
     #endif
+
     #define hkSGP30_USE_SENSOR                  true                            // Decide if we want to use SGP30
     #if hkSGP30_USE_SENSOR
         #define hkSGP30_ADDRESS                 0x58                            // i2c address
@@ -94,6 +96,7 @@
             #define hkSGP30_USE_BME280          true                            // Use BME280 for humidity and temperature compensation
         #endif
     #endif
+    
     #define hkPMS5003_USE_SENSOR                true                            // Decide if we want to use PMS5003
     #if hkPMS5003_USE_SENSOR
         #define hkPMS5003_HUMID_COMPENSATION    false                           // We can compensate reading for high humidity TODO: make it work with RTOS
@@ -104,13 +107,18 @@
         #define hkPMS5003_NORMALIZE_DATA        true                            // Decide if we want to "smooth" data or raw values   
     #endif
 
+    #define hkDHT20_USE_SENSOR                  true                            // Decide if we want to use DHT20/AHT20
+    #if hkDHT20_USE_SENSOR
+        #define hkDHT20_ADDRESS                 0x38                            // I2C address
+    #endif
+
 
     // Storage
     #define hkEEPROM_24LC01B                    true                            // 1Kb   (128B) I2C EEPROM
     #if hkEEPROM_24LC01B
         #define EEPROM_ADDR                     0x50                            // I2C address
         #define hkEEPROM_24AA01                 true                            // 1Kb   (128B) I2C EEPROM - compatible with 24LC01B - operating voltage from 1.7V
-        #define hkEEPROM_24FC01                 false                           // 1Kb   (128B) I2C EEPROM - compatible with 24LC01B - clock up to 1000 KHz
+        #define hkEEPROM_24FC01                 true                           // 1Kb   (128B) I2C EEPROM - compatible with 24LC01B - clock up to 1000 KHz
     #endif
     #define hkEEPROM_CAT24C512                  false                           // 512Kb (64KB) I2C EEPROM
     #define hkFRAM_MB85RC256V                   false                           // 256Kb (32KB) I2C FRAM
@@ -138,6 +146,12 @@
         #define hkKY40_BTN_PIN                  20                              // Button GPIO PIN
         #define hkKY40_ENCODERS_COUNT           1                               // How many encoders will be used in a project
         #define hkKY40_GET                      -1                              // Helper define for KY40_Position() function
+    #endif
+
+    // Timing
+    #define hkDS1307_USE_MODULE                 true                            // Decide if we want to use DS1307 RTC module
+    #if hkDS1307_USE_MODULE
+        #define hkDS1307_ADDRESS                0x68                            // I2C address
     #endif
 
     // Debugging

@@ -124,8 +124,18 @@ b8 PMS5003_Read(UART_Config_t* uart, PMS5003_Config_t* config) {
 }
 
 
+extern EventGroupHandle_t xSystemStateEventGroup;
 void vPMS5003_Task(void* pvParameters) {
     HTRACE("pms5003.c -> RTOS:vPMS5003_Task(void*):void");
+
+    xEventGroupWaitBits(
+        xSystemStateEventGroup,      // The event group to wait on
+        BIT_MODE_NORMAL_OPERATION,   // The bit to wait for
+        pdFALSE,                     // Don't clear the bit on exit
+        pdFALSE,                     // Wait for ALL bits (we only have one)
+        portMAX_DELAY                // Wait forever
+    );
+
 
     PMS5003_TaskParams_t* params = (PMS5003_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();

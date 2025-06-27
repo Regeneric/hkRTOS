@@ -31,4 +31,6 @@ target_link_libraries(libstorage
         hardware_gpio
         hardware_i2c 
         hardware_spi
+
+        FreeRTOS-Kernel-Heap4
 )

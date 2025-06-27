@@ -42,8 +42,11 @@ endif()
 
 # --- RTOS KERNEL & SDK PATHS -------------------------------------------------
 set(FREERTOS_KERNEL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/FreeRTOS-Kernel)
-set(PICO_SDK ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-sdk)
-set(PICO_EXTRAS ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-extras)
+# set(FREERTOS_HEAP "4" CACHE STRING "Pick which heap_X.c to build (1–5)" FORCE)
+
+set(PICO_SDK_PATH /usr/share/pico-sdk)
+# set(PICO_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-sdk)
+set(PICO_EXTRAS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib/pico-extras)
 set(PICO_DEOPTIMIZED_DEBUG 0)
 
 include(pico_sdk_import.cmake)
@@ -121,6 +124,6 @@ endif()
 
 execute_process(
     COMMAND
-        python htmlconvert.py
+        python makefsdata.py
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
 )

@@ -397,8 +397,18 @@ BME280_DataPacket_t BME280_AverageData(BME280_DataPacket_t* data, size_t len) {
 }
 
 
+extern EventGroupHandle_t xSystemStateEventGroup;
 void vBME280_Task(void* pvParameters) {
     HTRACE("bme280.c -> RTOS:vBME280_Task(void*):void");
+
+    xEventGroupWaitBits(
+        xSystemStateEventGroup,      // The event group to wait on
+        BIT_MODE_NORMAL_OPERATION,   // The bit to wait for
+        pdFALSE,                     // Don't clear the bit on exit
+        pdFALSE,                     // Wait for ALL bits (we only have one)
+        portMAX_DELAY                // Wait forever
+    );
+    
 
     BME280_TaskParams_t* params = (BME280_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();
@@ -412,7 +422,7 @@ void vBME280_Task(void* pvParameters) {
     vTaskDelay(pdMS_TO_TICKS(100));
     while(FOREVER) {
         HTRACE("vBME280_Task(): Running on core {%d}", (u16)coreID);
-
+        
         BME280_InitRead(params->i2c, params->bme280);
         vTaskDelay(pdMS_TO_TICKS(15));
         BME280_Read(params->i2c, params->bme280);

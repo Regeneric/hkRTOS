@@ -1,6 +1,9 @@
 #include <config/arm.h>
 #if hkEEPROM_24LC01B
 
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -9,7 +12,6 @@
 #include <core/logger.h>
 #include <storage/storage.h>
 #include <storage/eeprom.h>
-#include <comm/i2c.h>
 
 
 #define EEPROM_PAGE_SIZE    8
@@ -21,10 +23,10 @@ b8 EEPROM_Write(const void* config, const void* packet) {
     const DataPacket_t* data = (DataPacket_t*)packet;
     u8 address = (u8)data->address;
 
-    if(hkEEPROM_24FC01 == false && i2c->speed > 400) {
-        HERROR("EEPROM_Write(): Clock faster than %u KHz is supported only on 24FC01", i2c->speed);
-        return false;
-    } 
+    // if(hkEEPROM_24FC01 == false && i2c->speed > (400 * 1000)) {
+    //     HERROR("EEPROM_Write(): Clock faster than 400 KHz is supported only on 24FC01. Current clock: ", (i2c->speed / 1000));
+    //     return false;
+    // } 
 
     // Sanity check
     if(data->size == 0 || data->size > EEPROM_PAGE_SIZE) {
@@ -95,5 +97,31 @@ b8 EEPROM_Read(const void* config, void* packet) {
     mutex_exit(i2c->mutex); 
     HTRACE("EEPROM_Read(): I2C mutex released");
     return true;
+}
+
+b8 EEPROM_WriteBlob(const I2C_Config_t* i2c, u16 addr, const u8* data, size_t len) {
+    size_t offset = 0;
+    while(offset < len) {
+        u16 absAddr = addr + offset;
+        size_t pageOffset = absAddr % EEPROM_PAGE_SIZE;
+        size_t chunk      = EEPROM_PAGE_SIZE - pageOffset;
+        if(chunk > len - offset) chunk = len - offset;
+
+        DataPacket_t packet = {
+            .address = absAddr,
+            .data    = (u8*)(data + offset),
+            .size    = chunk
+        };
+
+        if(!EEPROM_Write(i2c, &packet)) return false;
+        
+        vTaskDelay(pdMS_TO_TICKS(6));
+        offset += chunk;
+    } return true;
+}
+
+b8 EEPROM_ReadBlob(const I2C_Config_t* i2c, u16 addr, u8* buff, size_t len) {
+    DataPacket_t packet = { .address = addr, .data = buff, .size = len };
+    return EEPROM_Read(i2c, &packet);
 }
 #endif

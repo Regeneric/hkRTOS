@@ -5,9 +5,40 @@
 
 // allow override in some examples
 #ifndef NO_SYS
-#define NO_SYS                      1       // We're not using RTOS
-// #define NO_SYS                      0       // We're using RTOS
+// #define NO_SYS                      1       // We're not using RTOS
+#define NO_SYS                      0       // We're using RTOS
 #endif
+#ifndef DEFAULT_UDP_RECVMBOX_SIZE
+#define DEFAULT_UDP_RECVMBOX_SIZE   8
+#endif
+#ifndef DEFAULT_TCP_RECVMBOX_SIZE
+#define DEFAULT_TCP_RECVMBOX_SIZE   8
+#endif
+#ifndef SYS_MBOX_SIZE
+#define SYS_MBOX_SIZE               16
+#endif
+#ifndef TCPIP_MBOX_SIZE
+#define TCPIP_MBOX_SIZE             16
+#endif
+#ifndef DEFAULT_RAW_RECVMBOX_SIZE
+#define DEFAULT_RAW_RECVMBOX_SIZE   8
+#endif
+#ifndef DEFAULT_ACCEPTMBOX_SIZE     8
+#endif
+
+#ifndef CYW43_TASK_STACK_SIZE
+#define CYW43_TASK_STACK_SIZE        1024  // in 4-byte words
+#endif
+
+#define TCPIP_THREAD_STACKSIZE       2048   /* 2048 words * 4 = 8192 bytes */
+#define TCPIP_THREAD_PRIO            (0 + 1)
+
+#define DEFAULT_THREAD_STACKSIZE     configMINIMAL_STACK_SIZE
+#define DEFAULT_THREAD_PRIO          (0 + 1)
+
+#define SLIPIF_THREAD_STACKSIZE      configMINIMAL_STACK_SIZE
+#define SLIPIF_THREAD_PRIO           (0 + 1)
+
 // allow override in some examples
 #ifndef LWIP_SOCKET
 #define LWIP_SOCKET                 0
@@ -15,8 +46,7 @@
 #if PICO_CYW43_ARCH_POLL
 #define MEM_LIBC_MALLOC             1
 #else
-// MEM_LIBC_MALLOC is incompatible with non polling versions
-#define MEM_LIBC_MALLOC             0
+#define MEM_LIBC_MALLOC             0   // MEM_LIBC_MALLOC is incompatible with non polling versions
 #endif
 #define MEM_ALIGNMENT               4
 #ifndef MEM_SIZE
@@ -24,7 +54,7 @@
 #endif
 #define MEMP_NUM_TCP_SEG            32
 #define MEMP_NUM_ARP_QUEUE          10
-#define PBUF_POOL_SIZE              24
+#define PBUF_POOL_SIZE              32
 #define LWIP_ARP                    1
 #define LWIP_ETHERNET               1
 #define LWIP_ICMP                   1
@@ -44,6 +74,7 @@
 // #define ETH_PAD_SIZE                2
 #define LWIP_CHKSUM_ALGORITHM       3
 #define LWIP_DHCP                   1
+#define LWIP_DHCPS                  1
 #define LWIP_IPV4                   1
 #define LWIP_TCP                    1
 #define LWIP_UDP                    1
@@ -57,12 +88,13 @@
 #define LWIP_HTTPD_SSI              1
 #define LWIP_HTTPD_CGI              1
 #define LWIP_HTTPD_SSI_INCLUDE_TAG  0
-#define HTTPD_FSTADA_FILE           "html.c"
+#define HTTPD_FSDATA_FILE           "html.c"
+#define HTTPD_USE_CUSTOM_FSDATA     1
 
 #ifndef NDEBUG
-#define LWIP_DEBUG                  1
-#define LWIP_STATS                  1
-#define LWIP_STATS_DISPLAY          1
+#define LWIP_DEBUG                  0
+#define LWIP_STATS                  0
+#define LWIP_STATS_DISPLAY          0
 #endif
 
 #define ETHARP_DEBUG                LWIP_DBG_OFF

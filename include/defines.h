@@ -75,6 +75,10 @@ typedef int32_t             b32;
 typedef char* (*json)(const void* self);
 
 
+#define BIT_MODE_NORMAL_OPERATION (1 << 0)
+#define BIT_MODE_CONFIG           (1 << 1)
+
+
 #if defined(__clang__) || defined(__gcc__) || defined(__avr_gcc__) || defined(__arm_gcc__) || defined(__riscv_gcc__)
     #define STATIC_ASSERT _Static_assert
 #else

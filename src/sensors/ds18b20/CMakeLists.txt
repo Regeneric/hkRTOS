@@ -33,6 +33,5 @@ target_link_libraries(libds18b20
         hardware_i2c
         hardware_dma
 
-        FreeRTOS-Kernel
-        FreeRTOS-Kernel-Heap4 
+        FreeRTOS-Kernel-Heap4
 )

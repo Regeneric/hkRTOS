@@ -3,6 +3,7 @@ add_library(libcore
         gpio.c
         logger.c
         hmean.c
+        flash.c
 )
 
 
@@ -27,5 +28,8 @@ target_link_libraries(libcore
         pico_stdlib 
 
         hardware_gpio
-        hardware_i2c 
+        hardware_i2c
+        hardware_flash
+
+        FreeRTOS-Kernel-Heap4
 )

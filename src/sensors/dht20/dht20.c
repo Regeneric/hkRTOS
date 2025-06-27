@@ -132,8 +132,18 @@ void DHT20_ProcessData(DHT20_Config_t* config, DHT_DataPacket_t* data) {
 }
 
 
+extern EventGroupHandle_t xSystemStateEventGroup;
 void vDHT20_Task(void* pvParameters) {
     HTRACE("dht20.c -> RTOS:vDHT20_Task(void*):void");
+
+    xEventGroupWaitBits(
+        xSystemStateEventGroup,      // The event group to wait on
+        BIT_MODE_NORMAL_OPERATION,   // The bit to wait for
+        pdFALSE,                     // Don't clear the bit on exit
+        pdFALSE,                     // Wait for ALL bits (we only have one)
+        portMAX_DELAY                // Wait forever
+    );
+    
 
     DHT20_TaskParams_t* params = (DHT20_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();

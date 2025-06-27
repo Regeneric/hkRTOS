@@ -2,6 +2,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
+#include <event_groups.h>
 
 #include <defines.h>
 #include <comm/onewire/onewire.h>

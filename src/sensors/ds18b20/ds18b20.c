@@ -232,8 +232,18 @@ b8 DS18B20_SetResolution(OneWire_Config_t* ow, u8 resolution) {
 #endif
 
 
+extern EventGroupHandle_t xSystemStateEventGroup;
 void vDS18B20_Task(void* pvParameters) {
     HTRACE("ds18b20.c -> RTOS:vDS18B20_Task(void*):void");
+
+    xEventGroupWaitBits(
+        xSystemStateEventGroup,      // The event group to wait on
+        BIT_MODE_NORMAL_OPERATION,   // The bit to wait for
+        pdFALSE,                     // Don't clear the bit on exit
+        pdFALSE,                     // Wait for ALL bits (we only have one)
+        portMAX_DELAY                // Wait forever
+    );
+
 
     DS18B20_TaskParams_t* params = (DS18B20_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();

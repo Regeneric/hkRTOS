@@ -31,6 +31,5 @@ target_link_libraries(libbme280
         hardware_gpio
         hardware_i2c
 
-        FreeRTOS-Kernel
-        FreeRTOS-Kernel-Heap4 
+        FreeRTOS-Kernel-Heap4
 )

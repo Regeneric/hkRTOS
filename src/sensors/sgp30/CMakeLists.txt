@@ -32,5 +32,5 @@ target_link_libraries(libsgp30
         hardware_uart
 
         FreeRTOS-Kernel
-        FreeRTOS-Kernel-Heap4 
+        FreeRTOS-Kernel-Heap4
 )

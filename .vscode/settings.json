@@ -68,6 +68,11 @@
         "utility": "cpp",
         "variant": "cpp",
         "dht11_22.h": "c",
-        "ky40.h": "c"
+        "ky40.h": "c",
+        "ds1307.h": "c",
+        "event_groups.h": "c",
+        "cstdlib": "c",
+        "fs.h": "c",
+        "dhcpserver.h": "c"
     }
 }

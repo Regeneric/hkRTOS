@@ -198,8 +198,18 @@ i32 SGP30_ReadBlockingHumidComp(I2C_Config_t* i2c, SGP30_Config_t* config, void*
 #endif
 
 
+extern EventGroupHandle_t xSystemStateEventGroup;
 void vSGP30_Task(void* pvParameters) {
     HTRACE("sgp30.c -> RTOS:vSGP30_Task(void*):void");
+
+    xEventGroupWaitBits(
+        xSystemStateEventGroup,      // The event group to wait on
+        BIT_MODE_NORMAL_OPERATION,   // The bit to wait for
+        pdFALSE,                     // Don't clear the bit on exit
+        pdFALSE,                     // Wait for ALL bits (we only have one)
+        portMAX_DELAY                // Wait forever
+    );
+
 
     SGP30_TaskParams_t* params = (SGP30_TaskParams_t*)pvParameters;
     UBaseType_t coreID = portGET_CORE_ID();

@@ -4,12 +4,14 @@ add_subdirectory(comm)
 add_subdirectory(storage)
 add_subdirectory(display)
 add_subdirectory(input)
+add_subdirectory(timing)
 
 add_executable(${PROJECT_NAME}
     main.c
     collect.c
     process.c
     display.c
+    manager.c
 )
 
 target_include_directories(${PROJECT_NAME} 
@@ -25,6 +27,7 @@ target_link_libraries(${PROJECT_NAME}
         libstorage
         libdisplay
         libinput
+        libtiming
 
         segger_sysview
         segger_sysview_freertos
@@ -33,10 +36,10 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         pico_stdlib 
         pico_stdio
-        pico_cyw43_arch_lwip_threadsafe_background
-        # pico_cyw43_arch_lwip_sys_freertos
         pico_multicore
         pico_sync
+        # pico_lwip
+        pico_cyw43_arch_lwip_sys_freertos
 
         hardware_pio
         # hardware_gpio
@@ -44,8 +47,7 @@ target_link_libraries(${PROJECT_NAME}
         # hardware_timer
         # hardware_i2c
 
-        FreeRTOS-Kernel
-        FreeRTOS-Kernel-Heap4 
+        FreeRTOS-Kernel-Heap4
 )
 
 pico_enable_stdio_usb(${PROJECT_NAME} 1)

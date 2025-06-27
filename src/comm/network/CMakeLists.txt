@@ -1,8 +1,17 @@
+add_subdirectory(dhcp)
+add_subdirectory(dns)
+
 add_library(libnetwork 
     STATIC
         wifi.c
-        # http_server.c
-        # http_client.c
+        mqtt.c
+        html.c
+        ping.c
+)
+
+target_compile_definitions(libnetwork
+    PRIVATE
+        HTTPD_USE_CUSTOM_FSDATA=1
 )
 
 
@@ -20,15 +29,25 @@ endif()
 target_include_directories(libnetwork
     PUBLIC
         ${PROJECT_INC_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR} 
 )
 
 target_link_libraries(libnetwork
+    PRIVATE
+        libcore
+        libstorage
+    #     libdhcp
+    #     libdns
+
     PUBLIC
         pico_stdlib 
-        # pico_cyw43_arch_lwip_sys_freertos
-        pico_cyw43_arch_lwip_threadsafe_background
         pico_lwip_http
+        pico_lwip_mdns
+        pico_cyw43_arch_lwip_sys_freertos
 
         hardware_gpio
-        hardware_pio
+        hardware_flash
+        hardware_watchdog
+
+        FreeRTOS-Kernel-Heap4
 )
