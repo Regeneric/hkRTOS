@@ -35,4 +35,8 @@ target_link_libraries(libonewire
         hardware_gpio
         hardware_pio
         hardware_dma
+        hardware_i2c
+
+        FreeRTOS-Kernel
+        FreeRTOS-Kernel-Heap4
 )

@@ -55,4 +55,6 @@ typedef struct Sensors_DataPacket_t {
     f32 relativeHumidity;
     f32 absoluteHumidity;
     f32 pressure;
+    
+    u32 timestamp;
 } Sensors_DataPacket_t;

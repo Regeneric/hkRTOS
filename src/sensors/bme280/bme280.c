@@ -4,7 +4,6 @@
 #include <core/logger.h>
 #include <sensors/bme280/bme280.h>
 
-
 // Official Bosch implementation
 static i32 BME280_CompensateTemp(i32 adcT, BME280_Config_t* config, i32* tFine) {
     i32 var1, var2, T;

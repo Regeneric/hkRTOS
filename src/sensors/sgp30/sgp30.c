@@ -52,7 +52,7 @@ i32 SGP30_Init(I2C_Config_t* i2c, SGP30_Config_t* config) {
     
     i32 status = SGP30_WriteCommand(i2c, config, SGP30_INIT);
     if(status != PICO_ERROR_GENERIC) HINFO("SGP30 sensor has been initalized.");
-    else HINFO("SGP30 sensor could not be initalized.");
+    else HERROR("SGP30 sensor could not be initalized.");
 
     return status; 
 }

@@ -297,7 +297,7 @@ void main(void) {
     // ------------------------------------------------------------------------
     static u8 hkDHT11_0_RawData[5];
     static DHT_Config_t hkDHT11_0 = {
-        .gpio    = hkDHT_PIN,
+        .gpio    = 17,
         .rawData = hkDHT11_0_RawData,
         .length  = sizeof(hkDHT11_0_RawData),
         .status  = DHT_INIT,
@@ -331,7 +331,7 @@ void main(void) {
     // ------------------------------------------------------------------------
     static u8 hkDHT22_0_RawData[5];
     static DHT_Config_t hkDHT22_0 = {
-        .gpio    = 26,
+        .gpio    = hkDHT_PIN,
         .rawData = hkDHT22_0_RawData,
         .length  = sizeof(hkDHT22_0_RawData),
         .status  = DHT_INIT,
@@ -466,7 +466,6 @@ void main(void) {
     // ------------------------------------------------------------------------
 
 
-
     // ************************************************************************
     // = RTOS ===
     // ------------------------------------------------------------------------
@@ -530,8 +529,8 @@ void main(void) {
 
 
     // - Data Pipeline ---
-    xTaskCreate(vDataCollectTask, "Collect_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, &hDataCollect_Task);
-    xTaskCreate(vDataProcessTask, "Process_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_MEDIUM, &hDataProcess_Task);
+    xTaskCreate(vDataCollectTask, "Collect_Task", (configMINIMAL_STACK_SIZE + 256), NULL   , hkTASK_PRIORITY_MEDIUM, &hDataCollect_Task);
+    xTaskCreate(vDataProcessTask, "Process_Task", (configMINIMAL_STACK_SIZE + 256), &hkI2C0, hkTASK_PRIORITY_MEDIUM, &hDataProcess_Task);
 
     xTaskCreate(vDataDisplayTask, "Display_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_HIGH  , &hDataDisplay_Task);
     // -------------------

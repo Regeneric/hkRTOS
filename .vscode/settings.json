@@ -73,6 +73,7 @@
         "event_groups.h": "c",
         "cstdlib": "c",
         "fs.h": "c",
-        "dhcpserver.h": "c"
+        "dhcpserver.h": "c",
+        "stddef.h": "c"
     }
 }

@@ -48,6 +48,7 @@ typedef struct DS18B20_DataPacket_t {
     f32  temperature;
     u64  address;
     u32  status;
+    u32  timestamp;
     json jsonify;
 } DS18B20_DataPacket_t;
 

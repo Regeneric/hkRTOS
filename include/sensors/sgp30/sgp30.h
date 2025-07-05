@@ -42,6 +42,7 @@ typedef struct SGP30_Config_t {
 typedef struct SGP30_DataPacket_t {
     u16  eco2;
     u16  tvoc;
+    u32  timestamp;
     json jsonify;
 } SGP30_DataPacket_t;
 

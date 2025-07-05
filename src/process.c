@@ -7,6 +7,7 @@
 #include <defines.h>
 
 #include <core/logger.h>
+#include <timing/ds1307/ds1307.h>
 
 #include <sensors/sensors.h>
 #include <sensors/dht11_22/dht11_22.h>
@@ -71,6 +72,29 @@ void vDataProcessTask(void* pvParameters) {
         pdFALSE,                     // Wait for ALL bits (we only have one)
         portMAX_DELAY                // Wait forever
     );
+
+
+    // // ************************************************************************
+    // // = DS1307 ===
+    // // ------------------------------------------------------------------------
+    // // TODO: set datetime from web interface
+    // I2C_Config_t* hkI2Cx = (I2C_Config_t*)pvParameters;
+    // static DS1307_Config_t hkDS1307_0 = {
+    //     .address   = hkDS1307_ADDRESS,
+    //     .reset     = false,
+    //     .utcOffset = 2
+    // };
+
+    // static DS1307_DataPacket_t hkDS1307_0_Data = {
+    //     .year    = 2025,
+    //     .month   = 7,
+    //     .day     = 4,
+    //     .dayName = 6,   // 1 is Sunday
+    //     .hour    = 0,
+    //     .min     = 20,
+    //     .sec     = 0
+    // }; DS1307_Init(hkI2Cx, &hkDS1307_0, &hkDS1307_0_Data);
+    // // ------------------------------------------------------------------------
 
 
     Sensors_DataPacket_t hkSensors_DataPacket = {0};
@@ -157,6 +181,11 @@ void vDataProcessTask(void* pvParameters) {
         
             // - Average Pressure ------------
             hkSensors_DataPacket.pressure = hkWeightedAverage(pressureAverage, pressureAverageLength);
+            // -------------------------------
+
+
+            // - Timestamp -------------------
+            // hkSensors_DataPacket.timestamp = DS1307_ReadDateTime(hkI2Cx, &hkDS1307_0, &hkDS1307_0_Data);
             // -------------------------------
 
             xQueueSend(xDisplayQueue, &hkSensors_DataPacket, 0);

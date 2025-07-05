@@ -52,6 +52,7 @@ typedef struct DHT_DataPacket_t {
     f32  dewPoint;
     f32  humidity;
     f32  absoluteHumidity;
+    u32  timestamp;
     json jsonify;
 } DHT_DataPacket_t;
 

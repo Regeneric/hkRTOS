@@ -32,6 +32,7 @@ typedef struct PMS5003_DataPacket_t {
     u16  pm1;
     u16  pm2_5;
     u16  pm10;
+    u32  timestamp;
     json jsonify;
 } PMS5003_DataPacket_t;
 

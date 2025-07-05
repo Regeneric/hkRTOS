@@ -104,6 +104,7 @@ typedef struct BME280_DataPacket_t {
     f32  dewPoint;
     f32  humidity;
     f32  absoluteHumidity;
+    u32  timestamp;
     json jsonify;
 } BME280_DataPacket_t;
 
