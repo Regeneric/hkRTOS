@@ -12,6 +12,7 @@ add_executable(${PROJECT_NAME}
     process.c
     display.c
     manager.c
+    send.c
 )
 
 target_include_directories(${PROJECT_NAME} 

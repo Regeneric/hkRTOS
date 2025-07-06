@@ -74,6 +74,12 @@
         "cstdlib": "c",
         "fs.h": "c",
         "dhcpserver.h": "c",
-        "stddef.h": "c"
+        "stddef.h": "c",
+        "ip_addr.h": "c",
+        "mqtt_priv.h": "c",
+        "mqtt.h": "c",
+        "altcp_tls.h": "c",
+        "unique_id.h": "c",
+        "dns.h": "c"
     }
 }

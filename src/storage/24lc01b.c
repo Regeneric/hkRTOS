@@ -99,7 +99,7 @@ b8 EEPROM_Read(const void* config, void* packet) {
     return true;
 }
 
-b8 EEPROM_WriteBlob(const I2C_Config_t* i2c, u16 addr, const u8* data, size_t len) {
+u16 EEPROM_WriteBlob(const I2C_Config_t* i2c, u16 addr, const u8* data, size_t len) {
     size_t offset = 0;
     while(offset < len) {
         u16 absAddr = addr + offset;
@@ -117,7 +117,9 @@ b8 EEPROM_WriteBlob(const I2C_Config_t* i2c, u16 addr, const u8* data, size_t le
         
         vTaskDelay(pdMS_TO_TICKS(6));
         offset += chunk;
-    } return true;
+    } 
+    
+    return (addr + offset);
 }
 
 b8 EEPROM_ReadBlob(const I2C_Config_t* i2c, u16 addr, u8* buff, size_t len) {

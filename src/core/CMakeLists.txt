@@ -3,7 +3,6 @@ add_library(libcore
         gpio.c
         logger.c
         hmean.c
-        flash.c
 )
 
 

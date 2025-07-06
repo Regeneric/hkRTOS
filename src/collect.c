@@ -98,6 +98,7 @@ void vDataCollectTask(void* pvParameters) {
 
         if((xTaskGetTickCount() - xLastSendTime) >= xSendInterval) {
             xQueueSend(xSnapshotQueue, &hkSensors_DataPacket, 0);
+            xQueueSend(xMQTTQueue, &hkSensors_DataPacket, 0);
             xLastSendTime = xTaskGetTickCount();
         }
     }

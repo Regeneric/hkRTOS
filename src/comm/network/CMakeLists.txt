@@ -43,11 +43,15 @@ target_link_libraries(libnetwork
         pico_stdlib 
         pico_lwip_http
         pico_lwip_mdns
+        pico_lwip_mqtt
+        pico_mbedtls
+        pico_lwip_mbedtls
         pico_cyw43_arch_lwip_sys_freertos
 
         hardware_gpio
         hardware_flash
         hardware_watchdog
 
+        FreeRTOS-Kernel
         FreeRTOS-Kernel-Heap4
 )

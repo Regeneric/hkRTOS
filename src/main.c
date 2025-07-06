@@ -29,6 +29,7 @@
 #include <comm/i2c.h>
 #include <comm/uart.h>
 #include <comm/network/wifi.h>
+#include <comm/network/mqtt.h>
 #include <comm/onewire/onewire.h>
 
 #include <storage/storage.h>
@@ -62,6 +63,7 @@ QueueHandle_t xDHT22_0_DataQueue;
 QueueHandle_t xBMP180_0_DataQueue;
 
 QueueHandle_t xSnapshotQueue;
+QueueHandle_t xMQTTQueue;
 QueueHandle_t xDisplayQueue;
 
 
@@ -80,6 +82,7 @@ TaskHandle_t hDataProcess_Task;
 TaskHandle_t hDataDisplay_Task;
 
 EventGroupHandle_t xSystemStateEventGroup;
+EventGroupHandle_t xMQTTStateEventGroup;
 
 
 extern void vDHT_Task(void* pvParameters);
@@ -89,6 +92,7 @@ extern void vSystemManagerTask(void* pvParameters);
 extern void vDataCollectTask(void* pvParameters);
 extern void vDataProcessTask(void* pvParameters);
 extern void vDataDisplayTask(void* pvParameters);
+extern void vDataSendTask(void* pvParameters);
 
 void vMonitorTask(void *pvParameters);
 
@@ -457,6 +461,14 @@ void main(void) {
 
 
     // ************************************************************************
+    // = MQTT ===
+    // ------------------------------------------------------------------------
+    static MQTT_Config_t hkMQTT = {0};
+    // ------------------------------------------------------------------------
+
+
+
+    // ************************************************************************
     // = KY40 ===
     // ------------------------------------------------------------------------
     const KY40_Config_t hkKY40_Encoders[hkKY40_ENCODERS_COUNT] = {
@@ -464,6 +476,7 @@ void main(void) {
         // {.clk = 28            , .dt = 27           , .btn = 26}
     }; KY40_InitAll(hkKY40_Encoders);
     // ------------------------------------------------------------------------
+
 
 
     // ************************************************************************
@@ -474,11 +487,17 @@ void main(void) {
     xSnapshotQueue = xQueueCreate(1, sizeof(Sensors_DataPacket_t));
     if(xSnapshotQueue == NULL) HFATAL("main(): Failed to create xSnapshotQueue queue!");
 
+    xMQTTQueue = xQueueCreate(1, sizeof(Sensors_DataPacket_t));
+    if(xMQTTQueue == NULL) HFATAL("main(): Failed to create xMQTTQueue queue!");
+
     xDisplayQueue = xQueueCreate(1, sizeof(Sensors_DataPacket_t));
-    if(xSnapshotQueue == NULL) HFATAL("main(): Failed to create xDisplayQueue queue!");
+    if(xDisplayQueue == NULL) HFATAL("main(): Failed to create xDisplayQueue queue!");
 
     xSystemStateEventGroup = xEventGroupCreate();
-    if(xSystemStateEventGroup == NULL) HFATAL("main(): Failed to create event group!");
+    if(xSystemStateEventGroup == NULL) HFATAL("main(): Failed to create event group xSystemStateEventGroup!");
+
+    xMQTTStateEventGroup = xEventGroupCreate();
+    if(xMQTTStateEventGroup == NULL) HFATAL("main(): Failed to create event group xMQTTStateEventGroup!");
 
 
 
@@ -532,7 +551,8 @@ void main(void) {
     xTaskCreate(vDataCollectTask, "Collect_Task", (configMINIMAL_STACK_SIZE + 256), NULL   , hkTASK_PRIORITY_MEDIUM, &hDataCollect_Task);
     xTaskCreate(vDataProcessTask, "Process_Task", (configMINIMAL_STACK_SIZE + 256), &hkI2C0, hkTASK_PRIORITY_MEDIUM, &hDataProcess_Task);
 
-    xTaskCreate(vDataDisplayTask, "Display_Task", (configMINIMAL_STACK_SIZE + 256), NULL, hkTASK_PRIORITY_HIGH  , &hDataDisplay_Task);
+    xTaskCreate(vDataDisplayTask, "Display_Task"  , (configMINIMAL_STACK_SIZE + 256), NULL   , hkTASK_PRIORITY_HIGH, &hDataDisplay_Task);
+    xTaskCreate(vDataSendTask,    "Data_Send_Task", (4096), &hkMQTT, hkTASK_PRIORITY_HIGH, NULL);
     // -------------------
 
 

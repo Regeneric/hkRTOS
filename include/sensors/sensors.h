@@ -27,6 +27,7 @@ extern QueueHandle_t xBMP180_0_DataQueue;
 
 extern QueueHandle_t xSnapshotQueue;
 extern QueueHandle_t xDisplayQueue;
+extern QueueHandle_t xMQTTQueue;
 
 typedef struct Average_DataPacket_t {
     f32 value;

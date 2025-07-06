@@ -2,6 +2,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <semphr.h>
+#include <event_groups.h>
 
 // hkRTOS
 #include <defines.h>
@@ -189,6 +190,7 @@ void vDataProcessTask(void* pvParameters) {
             // -------------------------------
 
             xQueueSend(xDisplayQueue, &hkSensors_DataPacket, 0);
+            xQueueSend(xMQTTQueue, &hkSensors_DataPacket, 0);
         }
     }
 }

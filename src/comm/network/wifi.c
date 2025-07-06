@@ -14,7 +14,6 @@
 #include <hardware/watchdog.h>
 
 #include <core/logger.h>
-#include <core/flash.h> // TODO: it should be storage/flash
 #include <storage/storage.h>
 #include <storage/eeprom.h>
 
@@ -120,7 +119,7 @@ void vWifiManagerTask(void* pvParameters) {
             watchdog_reboot(0, 0, 0);
         } else {
             u32 linkStatus = cyw43_wifi_link_status(&cyw43_state, CYW43_ITF_STA);
-            if(linkStatus == CYW43_LINK_JOIN) {   // TODO: it won't work as intended
+            if(linkStatus == CYW43_LINK_UP) {   // TODO: it won't work as intended
                 cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
                 xEventGroupSetBits(xSystemStateEventGroup, WIFI_CONNECTED_BIT);
                 
@@ -169,6 +168,9 @@ static const char* configHandler(int iIndex, int iNumParams, char* pcParam[], ch
         } else if(strcmp(pcParam[i], "pass") == 0) {
             HINFO("Received password: %s", pcValue[i]);
             strncpy(creds.pass, pcValue[i], PASS_MAXLEN - 1);
+        } else if(strcmp(pcParam[i], "date") == 0) {
+            HINFO("Received date and time: %s", pcValue[i]);
+            // ....
         }
     }
 
@@ -178,7 +180,7 @@ static const char* configHandler(int iIndex, int iNumParams, char* pcParam[], ch
     //     .size    = sizeof(creds)
     // };
 
-    EEPROM_WriteBlob(sgParams->i2c, 0x00, (u8*)&creds, sizeof(creds));
+    u16 nextChunk = EEPROM_WriteBlob(sgParams->i2c, 0x00, (u8*)&creds, sizeof(creds));
     HINFO("WiFi credentials has been saved in flash memory (SSID='%s', PASS='%s')", creds.ssid, creds.pass);
     
     HINFO("Configuration received. System will apply settings.");

@@ -26,7 +26,7 @@ target_link_libraries(libstorage
         libcomm
 
     PUBLIC
-        pico_stdlib 
+        pico_stdlib
 
         hardware_gpio
         hardware_i2c 

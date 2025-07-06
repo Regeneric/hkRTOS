@@ -7,6 +7,12 @@
     #define hkTASK_PRIORITY_MEDIUM               2                               // For RTOS tasks
     #define hkTASK_PRIORITY_HIGH                 3                               // For RTOS tasks
 
+    #define hkMQTT_BROKER_ADDR                  "192.168.1.50"                   
+    #define hkMQTT_BROKER_PORT                   1883
+    #define hkMQTT_TOPIC                        "sensors/data"
+    #define hkMQTT_KEEPALIVE                     60
+    #define hkMQTT_DEVICE_NAME                  "pico"
+
     // Communication
     #define hkI2C_USE_SINGLE_I2C                 false                           // Use single or both uC I2Cs
     #define hkI2C_BUS_COUNT                     (hkI2C_USE_SINGLE_I2C ? 1 : 2)   // Active I2C buses count

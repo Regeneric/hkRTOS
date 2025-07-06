@@ -72,10 +72,10 @@
         <h1>Sensor Configuration</h1>
         <p>Connect your device to a WiFi network.</p>
         
-        <!-- The form action points to our CGI handler -->
         <form action="/config.cgi" method="get">
             <input type="text" name="ssid" placeholder="WiFi Network Name (SSID)" required>
             <input type="password" name="pass" placeholder="Password" required>
+            <!-- datetime -->
             <button type="submit">Connect</button>
         </form>
 
